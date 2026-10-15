@@ -28,6 +28,8 @@ This repo is a job application workspace. Claude acts as a career advisor and ap
   lower level than a posting wants is flagged for your own judgment, not auto-rejected. See
   04-job-evaluation.md's Language Gate. -->
 - **CV language:** [YOUR_CV_LANGUAGE] <!-- English unless your market expects otherwise; /setup asks -->
+- **CV length:** 1 page <!-- Peru fork default: one page (the norm for Peruvian recruiters, and for prácticas and junior roles). Change to "2 pages" only when the candidate asks. /apply's page check reads this line. -->
+- **Work mode preference:** [YOUR_WORK_MODE_PREFERENCE] <!-- presencial / híbrido / remoto, and how many on-site days you accept, e.g. "híbrido o remoto; presencial solo en San Isidro o Miraflores". Scored in the Location dimension of 04-job-evaluation.md. -->
 
 - **Status:** [YOUR_EMPLOYMENT_STATUS]
 - **LinkedIn headline:** "[YOUR_LINKEDIN_HEADLINE]"
@@ -91,11 +93,13 @@ automatically from your Languages table above - don't duplicate them here. -->
 - `cv/` - LaTeX CV variants (moderncv template, banking style)
 - `cover_letters/` - LaTeX cover letters (custom cover.cls template)
 - `.claude/skills/` - AI skill definitions for the application workflow
-- `.agents/skills/` - Job search CLI tools
+- `.agents/skills/` - Job search CLI tools (Peru: `computrabajo-search`, `bumeran-search`, `getonboard-search`, plus `linkedin-search` with `-l "Lima, Peru"`)
+- `.claude/skills/job-application-assistant/10-peru-market.md` - Peruvian market rules: CV conventions, public-sector convocatorias, prácticas law, pay regimes, Lima districts
+- `tools/pe_sueldo.py` / `tools/myworkin_salaries.py` - Peruvian pay calculator and per-company salary lookup
 
 ## Workflow for New Job Applications
 1. User provides a job posting (URL or text)
-2. **Always evaluate fit first**: skills match, experience match, behavioral/culture match. Present this assessment to the user before proceeding.
+2. **Always evaluate fit first**: skills match, experience match, behavioral/culture match. Present this assessment to the user before proceeding. For Peruvian postings, apply `10-peru-market.md` as well (contract regime behind the salary, prácticas rules, public-sector requirements, academic-standing filters).
 3. If good fit: create targeted CV (`cv/main_<company>_<role>.tex`) and cover letter (`cover_letters/cover_<company>_<role>.tex`)
 4. **Verify both documents** (see Verification Checklist below)
 5. Prepare interview talking points based on the role requirements and your strengths
@@ -118,7 +122,7 @@ After creating or updating a CV or cover letter, re-read the generated file and 
 - [ ] Nice-to-have requirements are highlighted where there is a match
 
 ### Consistency
-- [ ] CV follows the standard 2-page moderncv/banking format
+- [ ] CV follows the moderncv/banking format at the profile's `CV length` (1 page by default; 2 only when the candidate asked)
 - [ ] Cover letter uses cover.cls template and established structure
 - [ ] Tone is consistent across CV and cover letter
 - [ ] No contradictions between CV and cover letter content
@@ -134,8 +138,8 @@ After creating or updating a CV or cover letter, re-read the generated file and 
 ### Compiled PDF verification (MANDATORY - never skip)
 Both documents MUST be compiled and visually inspected via the Read tool on the PDF output. "Looks fine in the .tex" is not acceptable - LaTeX page-break decisions are unpredictable. Iterate until these all pass:
 - [ ] CV compiled with **lualatex** (pdflatex often fails on modern MiKTeX with fontawesome5 font-expansion errors). Cover letter compiled with **xelatex** (cover.cls requires fontspec). If a custom template is active (registered via `/add-template`), compile with its declared command instead — see the `ACTIVE-TEMPLATE` block in `05-cv-templates.md`/`06-cover-letter-templates.md`.
-- [ ] **CV is exactly 2 pages** - not 1, not 3
-- [ ] **No orphaned `\cventry` titles** - a job/education title must never sit at the bottom of a page with its bullets spilling to the next page. Use `\needspace{5\baselineskip}` before each `\cventry` to prevent this, and `\enlargethispage{2-3\baselineskip}` to rescue a trailing section that just barely spills
+- [ ] **CV is exactly the profile's `CV length`** - 1 page by default (2 only when the candidate asked); never more
+- [ ] **No orphaned `\cventry` titles** (2-page CVs) - a job/education title must never sit at the bottom of a page with its bullets spilling to the next page. Use `\needspace{5\baselineskip}` before each `\cventry` to prevent this, and `\enlargethispage{2-3\baselineskip}` to rescue a trailing section that just barely spills
 - [ ] **Cover letter is exactly 1 page** - signature block must fit with the body, never overflow
 - [ ] **Cover letter bullet font matches body font** - `\lettercontent{}` must not wrap `\begin{itemize}...\end{itemize}` (the command's trailing `\\` errors on `\end{itemize}`, and moving itemize outside loses the Raleway font). Standard pattern: close `\lettercontent{}`, then wrap the list in `{\raggedright\fontspec[Path = OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont \begin{itemize}...\end{itemize}\par}`
 

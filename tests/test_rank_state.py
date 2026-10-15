@@ -76,7 +76,7 @@ class Candidates(RankStateCase):
         self.assertEqual([row["key"] for row in out["selected"]], ["a"])
         self.assertEqual(
             set(out["selected"][0]),
-            {"key", "title", "company", "url", "portal", "deadline", "posted_date"},
+            {"key", "title", "company", "url", "portal", "location", "modality", "deadline", "posted_date"},
             "the projection is the point: strengths/gaps and every other stored field "
             "stay on disk rather than entering the conversation",
         )
@@ -587,3 +587,35 @@ class Apply(RankStateCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Modality(RankStateCase):
+    """Peru fork: the shared work-mode field (presencial / híbrido / remoto)."""
+
+    SCORES = {"technical": 60, "experience": 60, "behavioral": 60, "career": 60}
+
+    def results(self, payload):
+        path = self.tmp / "results.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        return str(path)
+
+    def test_candidates_carry_the_portal_modality(self):
+        self.write_state({"a": entry(modality="híbrido", location="San Isidro, Lima")})
+        row = self.run_tool("candidates", "--tracker", str(self.tmp / "none.csv"))["selected"][0]
+        self.assertEqual((row["modality"], row["location"]), ("híbrido", "San Isidro, Lima"))
+
+    def test_agent_modality_is_normalized_and_stored(self):
+        self.write_state({"a": entry()})
+        out = self.run_tool("apply", "--results", self.results(
+            [{"key": "a", "status": "scored", "scores": self.SCORES, "modality": "Hybrid"}]))
+        self.assertEqual(self.read_state()["a"]["modality"], "híbrido")
+        self.assertEqual(out["ranked"][0]["modality"], "híbrido")
+
+    def test_unknown_or_invalid_modality_does_not_erase_a_stored_one(self):
+        self.write_state({"a": entry(modality="presencial"), "b": entry(url="https://example.com/b", modality="remoto")})
+        self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": self.SCORES, "modality": None},
+            {"key": "b", "status": "scored", "scores": self.SCORES, "modality": "a veces"},
+        ]))
+        state = self.read_state()
+        self.assertEqual((state["a"]["modality"], state["b"]["modality"]), ("presencial", "remoto"))

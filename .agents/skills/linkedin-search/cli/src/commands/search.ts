@@ -56,7 +56,11 @@ function renderTable(cards: JobCard[]): string {
 export async function runSearch(opts: SearchOpts): Promise<number> {
   try {
     const html = await htmlFetch(buildUrl(opts))
-    let cards = parseJobCards(html)
+    // Peru fork: every portal CLI emits a normalized `modality`. LinkedIn's guest cards
+    // carry no work-mode field, so it is known only when the search itself filtered on
+    // it (f_WT); otherwise null, never guessed.
+    const modality = { remote: "remoto", hybrid: "híbrido", onsite: "presencial" }[opts.remote ?? ""] ?? null
+    let cards = parseJobCards(html).map((c) => ({ ...c, modality }))
     if (opts.limit !== undefined && opts.limit >= 0) cards = cards.slice(0, opts.limit)
 
     if (opts.format === "table") {

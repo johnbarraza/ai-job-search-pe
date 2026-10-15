@@ -90,7 +90,10 @@ Tag each fallback result as WebSearch-sourced, keeping the portal tag when the f
 For each promising result from Step 1:
 
 **From CLI results:** Search output already includes title, company, location, date,
-and URL. For jobs worth a deeper look, fetch full detail with that portal's `detail`
+and URL. Every Peru portal CLI also emits a normalized `modality` (`presencial` /
+`híbrido` / `remoto`, or `null`); LinkedIn fills it only when the search used `--remote`. When it is
+`null`, read the work mode from the detail fetch's description; if the posting does not
+say, record `null` and show "no indicada" — never infer it. For jobs worth a deeper look, fetch full detail with that portal's `detail`
 command (see its SKILL.md — do not guess flags) to extract **key requirements**,
 **application deadline**, and a brief description snippet.
 
@@ -137,6 +140,11 @@ For each new job, do a rapid fit check (NOT the full evaluation from `04-job-eva
 - **Medium match**: Role is adjacent to your experience
 - **Low match**: Role requires significant skills you lack
 
+**Work-mode check:** compare the job's `modality` with the `Work mode preference` line in
+CLAUDE.md. A mode the candidate rules out lowers the match one level and is named in the
+highlight bullets ("presencial 5 días en Callao; tu preferencia es híbrido"); an unknown
+mode is not penalized but is shown as "no indicada".
+
 **Language override:** before assigning a match level, check the posting against `04-job-evaluation.md`'s Language Gate (a required language you haven't declared at all in your CLAUDE.md Languages table). A required language that's entirely undeclared overrides skill fit: mark it **Low** regardless of how well the skills align, and name it in the highlight bullets so it isn't buried under an otherwise-good-looking match. A **declared** language at a requirement that reads higher than your declared level is *not* an override — score fit normally, but add a red-flag bullet under that job's highlights (Step 5) quoting the posting's requirement next to your declared level, so the gap is visible without being auto-downgraded.
 
 ### Step 4: Deduplicate & Store
@@ -163,6 +171,7 @@ It prints one line: the canonical key for that posting. The key must be a pure f
       "fit": "high/medium/low",
       "status": "new/skipped/ranked/expired",
       "portal": "<source portal skill, e.g. jobindex-search>",
+      "modality": "presencial" | "híbrido" | "remoto" | null,
       "source": "cli/websearch"
     }
   }
@@ -249,9 +258,9 @@ fallback (websearch): <portal-name>, <portal-name>
 health: <portal-name> - degraded (company null on all 12 results); parsing anchors in .agents/skills/<portal-name>/url-reference.md
 health: <portal-name> - broken (0 results for the SKILL.md test query and a broader retry); parsing anchors in .agents/skills/<portal-name>/url-reference.md
 
-| # | Fit | Title | Company | Location | Deadline | URL |
-|---|-----|-------|---------|----------|----------|-----|
-| 1 | High | ... | ... | ... | ... | [Link](...) |
+| # | Fit | Title | Company | Location | Modalidad | Deadline | URL |
+|---|-----|-------|---------|----------|-----------|----------|-----|
+| 1 | High | ... | ... | ... | híbrido | ... | [Link](...) |
 
 If Step 2.5 flagged a mass-posting pattern, note it in the Title cell (e.g. "Frontend Developer (posted in 6 cities)") rather than burying it. Do the same for a declared-language-insufficient-level flag from the Language Gate (e.g. "Backend Engineer ⚠ fluent English required") - both are signals the user should see at a glance, not just in the detail highlights below.
 

@@ -32,8 +32,18 @@ SPELLING_VARIANTS = {
     "ö": "o", "ä": "ae", "ü": "u",
 }
 
+# Spanish accents folded before matching, so "Rímac Seguros" and "Rimac Seguros"
+# normalize identically. Applied before the [a-zæøåöäü0-9] filter, which would
+# otherwise drop the accented letter outright ("rímac" -> "rmac"). Kept explicit
+# rather than a blanket NFKD fold so the Danish å/æ/ø handling above is unchanged.
+SPANISH_ACCENTS = str.maketrans("áéíóúñ", "aeioun")
+
 # Legal suffixes and noise to strip when matching company names
 STRIP_PATTERNS = [
+    # Peruvian company forms (S.A.A., S.A.C., S.R.L., E.I.R.L., S.A.) and country noise.
+    r"\bs\.?a\.?a\.?(?=\W|$)", r"\bs\.?a\.?c\.?(?=\W|$)", r"\bs\.?r\.?l\.?(?=\W|$)",
+    r"\be\.?i\.?r\.?l\.?(?=\W|$)", r"\bs\.a\.?(?=\W|$)", r"\bsa$",
+    r"\bdel\s+peru\b", r"\bperu\b",
     r"\ba/s\b", r"\baps\b", r"\bi/s\b", r"\bp/s\b", r"\bk/s\b",
     r"\bivs\b", r"\bamba\b", r"\ba\.m\.b\.a\.?\b",
     r"\(vg\)", r"\(.*?\)",  # (VG) and other parentheticals
@@ -163,7 +173,7 @@ def load_data():
 
 def normalize(s):
     """Normalize string for robust fuzzy matching."""
-    s = s.lower().strip()
+    s = s.lower().strip().translate(SPANISH_ACCENTS)
     for pat in STRIP_PATTERNS:
         s = re.sub(pat, "", s)
     s = re.sub(r"[^a-zæøåöäü0-9]", "", s)
@@ -180,7 +190,7 @@ def anglicize(s):
 
 def extract_core_words(s):
     """Extract meaningful words from a company name, ignoring noise."""
-    s = s.lower()
+    s = s.lower().translate(SPANISH_ACCENTS)
     for pat in STRIP_PATTERNS:
         s = re.sub(pat, "", s)
     words = re.findall(r"[a-zæøåöäü0-9]+", s)

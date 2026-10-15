@@ -1,5 +1,5 @@
 ---
-framework_version: 1.2.6
+framework_version: 1.2.8
 ---
 
 # Job Evaluation Framework
@@ -91,10 +91,29 @@ Does the role and company culture match the behavioral profile?
 **Red flags to research:** Department disorganization, work dominated by maintenance over development, poor chemistry with leadership, culture mismatches. Check reviews, media coverage, LinkedIn connections, and network contacts for insider perspective.
 
 ### 4. Location & Logistics (Pass/Fail + Notes)
-- Within commute range: PASS
+
+**Work mode first (modalidad).** Establish whether the role is `presencial`, `híbrido` (with
+the on-site days per week when stated) or `remoto`, in this order of evidence: the portal's
+normalized `modality` field (every Peru portal CLI emits it; LinkedIn only when the search
+used `--remote`), then the posting text ("modalidad híbrida", "3 días en oficina", "100%
+remoto", "presencial en San Isidro"), else **"no indicada"**. Never guess it from the
+company or the role type. Then compare it with the candidate's `Work mode preference` in
+CLAUDE.md:
+
+- Work mode matches the preference and any on-site days fall within commute range: PASS
 - Remote with occasional office: PASS
+- Work mode the candidate excludes (e.g. presencial when the preference says "solo remoto o
+  híbrido"), or on-site days in a district the preference rules out: FAIL when the
+  preference states it as a requirement, otherwise FLAG
+- Work mode "no indicada": FLAG, and list "confirmar modalidad y días presenciales" among
+  the questions for the recruiter
 - Requires relocation: FAIL (deal-breaker)
 - Frequent international travel: FLAG (discuss with user)
+
+Always name the work mode in the Location row's note (e.g. "híbrido 3x semana · San
+Isidro"), so it is visible even when the verdict is PASS. For prácticas, also note the
+schedule if the posting gives one ("turno mañana", "6 h"), since it must fit the class
+timetable.
 
 ### 5. Career Alignment & Motivation (0-100)
 Does this role advance career goals and contain tasks that energize?
@@ -141,6 +160,19 @@ Present findings as:
 
 Interpret results relative to the baseline defined in the data file's metadata. For index-based data, higher typically means above-market compensation.
 
+**Peru fork.** For a Peruvian employer, populate the benchmark on demand first, then look it up:
+```
+python tools/myworkin_salaries.py "<Company Name>"        # merges MyWorkIn data into salary_data.json
+python salary_lookup.py "<Company Name>" --json
+```
+MyWorkIn rows are self-reported monthly ranges in soles, often from one or two people per
+role: quote the role closest to the posting and its report count, never present it as the
+company's pay scale. Exit code 2 means the company has no MyWorkIn page and 3 means the name
+is ambiguous (rerun with the `--slug` it lists). When the posting or the candidate quotes a
+monthly amount, also run `python tools/pe_sueldo.py <monto> --comparar` and report what it
+is worth per year under the regime the posting implies (planilla, REMYPE, recibo por
+honorarios, prácticas); see `10-peru-market.md` section 6.
+
 If the salary tool is not configured, skip this section.
 
 ## Output Format
@@ -155,7 +187,7 @@ Present the evaluation as:
 | Technical Skills | XX/100 | [brief note] |
 | Experience Match | XX/100 | [brief note] |
 | Behavioral Fit | XX/100 | [brief note] |
-| Location | PASS/FAIL | [brief note] |
+| Location | PASS/FAIL/FLAG | [modalidad · lugar · nota] |
 | Career Alignment | XX/100 | [brief note] |
 
 **Overall Score: XX/100** (weighted average of scored dimensions)

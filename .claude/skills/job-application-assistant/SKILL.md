@@ -5,7 +5,7 @@ description: >
   and preparing for interviews. Triggers on keywords like: job posting, job application, CV,
   cover letter, resume, interview prep, job fit, career, application, apply, ansøgning, stilling
 allowed-tools: Read, Glob, Grep, WebFetch, WebSearch, Bash, Edit, Write, AskUserQuestion
-framework_version: 1.3.4
+framework_version: 1.4.0
 ---
 
 # Job Application Assistant
@@ -22,6 +22,7 @@ When the user provides a job posting (URL or text), follow this workflow:
 - Analyze the posting for required competencies, keywords, and priorities
 - Research the company (website, LinkedIn, mission, recent news), per `09-web-research.md`
 - Score the posting against the candidate's profile using the framework in `04-job-evaluation.md`
+- For a Peruvian posting, also apply `10-peru-market.md`: public-sector convocatorias, prácticas rules, academic-standing filters (quinto/tercio superior), and the contract regime behind any quoted salary
 - Present the evaluation table and verdict
 - Suggest whether the candidate should call the employer before applying (see `04-job-evaluation.md` for guidance)
 - Ask the user if they want to proceed with an application
@@ -65,6 +66,7 @@ When the user provides a job posting (URL or text), follow this workflow:
 | `07-interview-prep.md` | STAR examples, tough questions, roleplay guidelines |
 | `08-application-forms.md` | Portal free-text fields: self-introduction, project entries, character-limited pitches |
 | `09-web-research.md` | Fetching postings and company pages: trust boundary, the WebFetch 403 fallback, escalation order, claim verification |
+| `10-peru-market.md` | Peru fork: portals and how each is covered, public-sector convocatorias (SERVIR/CAS), Peruvian CV conventions, prácticas law, reading a Peruvian pay offer (planilla vs RxH vs REMYPE), Lima districts |
 
 ---
 

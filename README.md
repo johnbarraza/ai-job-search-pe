@@ -18,6 +18,68 @@ An AI-powered job application framework built on [Claude Code](https://claude.co
 >
 > This project has **no affiliated cryptocurrency, token, or paid sponsorship program**. Anything claiming otherwise is unauthorized and should be treated as a scam. The only ways to support the project are the Ko-fi link below and contributing on GitHub.
 
+## 🇵🇪 Edición Perú
+
+Este repositorio es un fork de [MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search) (hecho para **Dinamarca**) adaptado al mercado laboral peruano. El flujo `/setup` → `/scrape` → `/rank` → `/apply` → `/interview` es el mismo; cambia todo lo que depende del país.
+
+### Instalación
+
+```bash
+git clone --recurse-submodules https://github.com/johnbarraza/ai-job-search-pe.git
+cd ai-job-search-pe
+python tools/install_portal_clis.py      # tipos de desarrollo de los CLIs (opcional)
+claude                                   # y dentro: /setup
+```
+
+Si ya lo clonaste sin `--recurse-submodules`: `git submodule update --init vendor/jev-browse`.
+
+### Qué trae
+
+| Qué | Dónde |
+|---|---|
+| **Computrabajo Perú**: el mayor volumen, todos los sectores; distritos de Lima/Callao (`-l "San Isidro"`, `-l SJL`) | `.agents/skills/computrabajo-search/` |
+| **Bumeran Perú**: filtros del lado del servidor por región, distrito, modalidad, nivel (`--level trainee-pasante`) y antigüedad | `.agents/skills/bumeran-search/` |
+| **Get on Board**: datos, analytics, tech y startups en Perú, incluye remotos abiertos a Perú (`-l Peru`) | `.agents/skills/getonboard-search/` |
+| **LinkedIn** (de upstream) con `-l "Lima, Peru"`: páginas públicas, sin iniciar sesión | `.agents/skills/linkedin-search/` |
+| **jev-search** (opcional, de pago): Talento Perú (SERVIR), Laborum, Empleos Perú, Prácticas.pe, Indeed o la bolsa de tu universidad, con un navegador real manejado por [jev-browse](https://github.com/0x7067/jev-browse) | `.agents/skills/jev-search/` + submódulo `vendor/jev-browse` |
+| **Modalidad** presencial / híbrido / remoto en cada resultado, comparada con tu preferencia en `/scrape`, `/rank` y `/apply` | campo `modality` de cada CLI; `Work mode preference` en `CLAUDE.md` |
+| **CV de 1 página** por defecto (lo más común en Perú); 2 páginas solo si lo pides | `CV length:` en `CLAUDE.md` |
+| **Calculadora de sueldo**: planilla general vs pequeña/micro empresa (REMYPE) vs recibo por honorarios vs prácticas, con RMV, UIT, AFP/ONP y renta 2026 | `python tools/pe_sueldo.py 4000 --comparar` |
+| **Sueldos por empresa** (MyWorkIn, autodeclarados) volcados a `salary_data.json` para `/apply` | `python tools/myworkin_salaries.py "Credicorp"` |
+| **Guía del mercado**: CV peruano (ciclo, quinto/tercio superior, grados), convocatorias del Estado (CAS), Ley de prácticas (subvención, seguro FOLA o EsSalud), cómo leer una oferta, modalidad, distritos de Lima | `.claude/skills/job-application-assistant/10-peru-market.md` |
+
+Los portales daneses vienen desactivados (`enabled: false`), igual que `jev-search` hasta que configures sus claves.
+
+### Ejemplos
+
+```bash
+bun run .agents/skills/computrabajo-search/cli/src/cli.ts search -q "analista de datos" -l "San Isidro" --jobage 7 --format table
+bun run .agents/skills/bumeran-search/cli/src/cli.ts search -q "practicante" -l "Lima" --level trainee-pasante --remote hybrid --format table
+bun run .agents/skills/getonboard-search/cli/src/cli.ts search -q "data analyst" -l Peru --format table
+bun run .agents/skills/jev-search/cli/src/cli.ts search --site talentoperu -q "economista" -l "Lima" --format table
+python tools/pe_sueldo.py 3500 --comparar
+python tools/pe_sueldo.py 1230 --regimen practicas
+```
+
+### jev-search y el submódulo jev-browse
+
+`jev-browse` (TypeScript, MIT) vive como **submódulo de git** en `vendor/jev-browse`, siguiendo su rama `main`. El CLI ejecuta su bundle ya compilado (`bundled/cli.mjs`), así que no hay `npm install`. Para traer sus actualizaciones:
+
+```bash
+git submodule update --remote vendor/jev-browse     # trae lo último de jev-browse
+git -C vendor/jev-browse log --oneline -5           # revisa qué cambió (es código que maneja tu navegador)
+(cd .agents/skills/jev-search/cli && bun test)      # el contrato sigue en verde
+git add vendor/jev-browse && git commit -m "chore: actualizar jev-browse"
+```
+
+Necesita Node 22+, Chrome y claves de modelo (`OPENROUTER_API_KEY` o `TYPESAFE_API_KEY`, más `TEXT_MODEL_API_KEY`) en el entorno o en `.env` (ignorado por git). **Cada corrida hace llamadas pagadas** y envía el texto de la página a esos proveedores. Antes de abrir Chrome pasa el control de robots.txt del repo (por ejemplo, rechaza la búsqueda de LinkedIn) y se detiene ante cualquier CAPTCHA. Además, solo lee: nunca postula, nunca inicia sesión y nunca escribe datos personales. [jev-ultrafast](https://github.com/browser-use/jev-ultrafast) no se incluye: es Python y su agente navega pero no redacta una respuesta con lo que lee, que es lo que hace falta para extraer ofertas.
+
+### LinkedIn con sesión iniciada (Agent-Reach): por qué no está integrado
+
+[Agent-Reach](https://github.com/Panniantong/Agent-Reach) resuelve LinkedIn con `linkedin-mcp-server`, que maneja **tu cuenta** con la cookie de sesión de tu navegador. Automatizar la cuenta va contra el acuerdo de usuario de LinkedIn, y el propio Agent-Reach advierte riesgo de bloqueo. Para buscar ofertas, `linkedin-search` ya trae resultados y descripciones completas sin iniciar sesión. Si igual lo quieres, puedes agregarlo tú mismo, de preferencia con una cuenta secundaria: `claude mcp add linkedin -- uvx mcp-server-linkedin@latest`.
+
+Todos los CLIs usan un User-Agent honesto que los identifica y son para **uso personal y con bajo volumen**. Las fuentes y la fecha de verificación de cada cifra están en `10-peru-market.md`. El resto de este README es el original de upstream, en inglés, salvo una nota: en este fork el CV tailored es de **1 página** por defecto.
+
 ## Does it actually work?
 
 I'm a geophysicist by training. When my position was cut in late 2025, I built this framework to run my own job search - the same `/scrape`, `/apply`, and `/interview` workflow in this repo, used weekly, on my own career. I was upfront about it with every employer I spoke to, and instead of counting against me, it usually sparked a genuine technical conversation.
@@ -186,7 +248,12 @@ ai-job-search/
 │   ├── jobindex-search/               # Jobindex.dk (Denmark)
 │   ├── jobnet-search/                 # Jobnet.dk (Denmark, government portal)
 │   ├── linkedin-search/               # LinkedIn public job listings (country-agnostic)
-│   └── freehire-search/               # freehire.me tech job aggregator (multi-market, REST API)
+│   ├── freehire-search/               # freehire.me tech job aggregator (multi-market, REST API)
+│   ├── computrabajo-search/           # Computrabajo Perú (Peru fork)
+│   ├── bumeran-search/                # Bumeran Perú, JSON API with server-side filters (Peru fork)
+│   ├── getonboard-search/             # Get on Board public API, tech/data in Peru (Peru fork)
+│   └── jev-search/                    # Browser-driven boards via jev-browse (Peru fork, opt-in)
+├── vendor/jev-browse/                 # git submodule: jev-browse (Peru fork, used by jev-search)
 ├── cv/
 │   └── main_example.tex               # moderncv LaTeX template
 ├── cover_letters/
@@ -204,6 +271,8 @@ ai-job-search/
 │   └── applications/                  # Past application records (<company>_<role>/)
 ├── .github/workflows/ci.yml           # CI: LaTeX smoke compiles, skill lint, CLI typechecks
 ├── salary_lookup.py                   # Salary benchmarking tool (BYO data)
+├── tools/pe_sueldo.py                 # Peru fork: pay calculator (planilla / REMYPE / RxH / prácticas)
+├── tools/myworkin_salaries.py         # Peru fork: MyWorkIn salaries -> salary_data.json
 ├── tools/
 │   ├── check_framework_version.py     # CI check: framework_version bumped when skill files change
 │   ├── check_upstream_updates.py      # Preview which personalized files an upstream update touches
@@ -232,7 +301,7 @@ The `/apply` command runs a **drafter-reviewer workflow** with mandatory PDF com
 3. **Draft** a tailored CV and cover letter in LaTeX
 4. **Spawn a reviewer agent** that researches the company and critiques the drafts
 5. **Revise** based on the reviewer's feedback
-6. **Compile and inspect** both PDFs: lualatex for the CV, xelatex for the cover letter. Claude reads the rendered pages and iterates on the LaTeX until the CV is exactly 2 pages with no orphaned entry titles, and the cover letter is exactly 1 page with the signature visible and fonts consistent.
+6. **Compile and inspect** both PDFs: lualatex for the CV, xelatex for the cover letter. Claude reads the rendered pages and iterates on the LaTeX until the CV is exactly the profile's `CV length` (1 page by default in this Peru fork, 2 if you ask) with no orphaned entry titles, and the cover letter is exactly 1 page with the signature visible and fonts consistent.
 7. **ATS-check the CV**: extract the PDF's text layer (`pdftotext`, optional dependency) and verify it the way an ATS parser sees it — contact details present as literal text, no garbled glyphs, sane reading order — then score the posting's keyword coverage against the extraction. Keywords the profile genuinely supports get added; genuine gaps stay visible, never stuffed.
 8. **Present** the final output with a verification checklist
 
@@ -242,7 +311,7 @@ All claims in the CV and cover letter are verified against your actual profile. 
 
 - **PDF verification loop.** Most LaTeX-resume templates produce "looks fine in the .tex" output that breaks in the PDF: job titles orphan to the next page, cover letters spill onto page 2, bullet fonts silently fall back to the body font. The `/apply` command compiles and visually inspects every PDF and applies targeted fixes (`\needspace`, `\enlargethispage`, font-matching wrappers for list items) until the layout is clean. This runs automatically on every application.
 - **ATS verification on the PDF text layer.** An ATS reads the PDF's embedded text, not the rendered page — and LaTeX can silently produce PDFs whose text extracts as garbage (icon glyphs where the email should be, interleaved lines from multi-column layouts). `/apply` extracts the compiled CV's text layer with `pdftotext` and verifies contact details, reading order, and the posting's keyword coverage against what a parser actually sees. Honesty rule enforced: a keyword the profile doesn't support is acknowledged as a gap, never stuffed in.
-- **Relevance-weighted CV cutting.** When a CV overflows 2 pages, the workflow does not cut mechanically from the "oldest" section. It scores each candidate line by (a) relevance to the target posting, (b) uniqueness in the document, and (c) whether the cover letter depends on it, and cuts the lowest-total-score line first. An older-role bullet that hits posting keywords survives ahead of a recent-role bullet that does not.
+- **Relevance-weighted CV cutting.** When a CV overflows its page limit (1 page by default in this fork), the workflow does not cut mechanically from the "oldest" section. It scores each candidate line by (a) relevance to the target posting, (b) uniqueness in the document, and (c) whether the cover letter depends on it, and cuts the lowest-total-score line first. An older-role bullet that hits posting keywords survives ahead of a recent-role bullet that does not.
 - **Drafter-reviewer separation.** The drafter writes; a second Claude agent, spawned with a fresh context, researches the company and critiques the drafts. The drafter then revises. This catches missed keywords, weak framing, and generic language that a single pass often leaves in.
 - **Token-efficient reviewer dispatch.** The reviewer agent receives drafts inline rather than re-reading them, and the verification checklist runs once at the end of the workflow rather than being duplicated by both agents. Note: the new compile-and-inspect step in Step 5 spends some of those savings on PDF rendering and layout iteration — the workflow trades some end-to-end token cost for a real reduction in broken PDFs reaching the user.
 

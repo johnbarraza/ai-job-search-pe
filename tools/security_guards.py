@@ -49,8 +49,18 @@ ALLOWED_PERMISSIONS = {
     "Bash(bun run .agents/skills/jobnet-search/cli/src/cli.ts:*)",
     "Bash(bun run .agents/skills/linkedin-search/cli/src/cli.ts:*)",
     "Bash(bun run .agents/skills/freehire-search/cli/src/cli.ts:*)",
+    # Peru fork: Peruvian portal CLIs (zero runtime deps, network only to their own portal).
+    "Bash(bun run .agents/skills/computrabajo-search/cli/src/cli.ts:*)",
+    "Bash(bun run .agents/skills/bumeran-search/cli/src/cli.ts:*)",
+    "Bash(bun run .agents/skills/getonboard-search/cli/src/cli.ts:*)",
     "Bash(python salary_lookup.py:*)",
     "Bash(python3 salary_lookup.py:*)",
+    # Peru fork: offline pay calculator, and the MyWorkIn salary lookup (one company per
+    # call, robots.txt-gated, writes only salary_data.json and .cache/).
+    "Bash(python tools/pe_sueldo.py:*)",
+    "Bash(python3 tools/pe_sueldo.py:*)",
+    "Bash(python tools/myworkin_salaries.py:*)",
+    "Bash(python3 tools/myworkin_salaries.py:*)",
     "Bash(python tools/rank_state.py:*)",
     "Bash(python3 tools/rank_state.py:*)",
     "Bash(python tools/job_key.py:*)",

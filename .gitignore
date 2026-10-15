@@ -119,3 +119,6 @@ company_research/*.json
 
 # Brainstorm mockups (superpowers visual companion) - never ship
 .superpowers/
+
+# MyWorkIn company-index cache (tools/myworkin_salaries.py)
+.cache/

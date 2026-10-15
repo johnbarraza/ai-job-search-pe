@@ -1,5 +1,5 @@
 ---
-framework_version: 1.4.6
+framework_version: 1.5.0
 ---
 
 # CV Templates and Tailoring Guide
@@ -20,7 +20,7 @@ All CVs use the moderncv LaTeX package with the "banking" style and "blue" color
 cd cv && lualatex -interaction=nonstopmode main_<company>_<role>.tex
 ```
 
-Expected output: `Output written on main_<company>_<role>.pdf (2 pages, ...)`. Any page count other than 2 is a failure that must be fixed before presenting to the user.
+Expected output: `Output written on main_<company>_<role>.pdf (1 page, ...)`. The target is the `CV length:` line in CLAUDE.md's Identity section: **1 page by default** in this fork (the norm for Peruvian recruiters, prácticas and junior roles), 2 pages only when the candidate has asked for it there. Any other page count is a failure that must be fixed before presenting to the user. The master CV (`cv/main_example.tex`) may run longer: it is the inventory the tailored CV is cut from.
 
 ## Document Structure
 
@@ -244,9 +244,9 @@ Related trap: a bullet whose text begins with a literal `[` must be braced - `\i
 After writing the CV and before presenting to the user, always compile and visually inspect the PDF. Iterate until the layout is clean. Workflow:
 
 1. Run `lualatex -interaction=nonstopmode main_<company>_<role>.tex`
-2. Check the output page count: must be exactly 2
-3. Read the PDF via the Read tool and visually inspect both pages
-4. Check for **orphaned entries**: a `\cventry` title line must never sit alone at the bottom of page 1 with its bullets on page 2
+2. Check the output page count: must be exactly the profile's `CV length` (1 by default)
+3. Read the PDF via the Read tool and visually inspect every page
+4. For a 2-page CV, check for **orphaned entries**: a `\cventry` title line must never sit alone at the bottom of page 1 with its bullets on page 2
 
 ### Fixing common page-break problems
 
@@ -312,9 +312,27 @@ Two independent causes, both easy to avoid:
 
 **Cause 1 is mechanical in step 5d**: `python tools/verify_pdf.py cv/main_<company>_<role>.pdf --ascii-dates` scans the raw text layer for a year joined to a Unicode dash and exits 1 naming each hit with its code point (`U+2013 in 'Role Title 2016–2024'`). It deliberately reads the raw layer: the fold that lets `--contains "2016-2024"` match what the template renders maps that same en-dash back to `-`, so `--contains` can never see this. A year on either side of the dash is enough, so `Mar 2016 – Jul 2016` and `2016 – Present` are caught too; a numeric range with no year (`EUR 600k–1M`) is left alone. **Cause 2 stays a read-through check**: after extracting the text layer, confirm every experience entry shows a start *and* an end. Because both failures are silent and invisible in the PDF, the candidate otherwise discovers them only while filling in the application form.
 
-## Page Budget - Hard 2-Page Limit
+## Page Budget - Hard Page Limit (1 page by default)
 
-The CV **must** fit on exactly 2 pages when compiled. Use these content limits as a guide:
+The CV **must** fit on exactly the profile's `CV length` when compiled: **1 page** unless CLAUDE.md's Identity section says `CV length: 2 pages`. Never switch to 2 pages on your own because the content is rich; cut by relevance instead (next section).
+
+### 1-page budget (default)
+
+| Section | Max budget |
+|---------|-----------|
+| Profile statement | 2-3 lines |
+| Skills / herramientas (with level: "Excel avanzado") | 3-4 lines total |
+| Most recent role or práctica | 3-4 bullets |
+| Previous role | 2 bullets |
+| Older roles | 1 line each, or cut |
+| Education | 1-2 entries, with ciclo / fecha de egreso and mérito (quinto/tercio superior) on the same line |
+| Languages | 1 line |
+| Publications / awards / certifications | 1-2 lines combined, only what the posting can use |
+| References | One line ("Referencias disponibles a solicitud" in a Spanish CV) |
+
+For a candidate with little experience (prácticas, first job), lead with Education and put relevant coursework, projects, student organisations or teaching assistant work where the experience would go: a full single page is better than a thin one.
+
+### 2-page budget (only when the candidate asked)
 
 | Section | Max budget |
 |---------|-----------|
@@ -355,7 +373,7 @@ Cut the lowest-total-score line first, regardless of which section it sits in.
 
 - Do not mechanically cut from the bottom of a static section list without checking relevance. "Cut the oldest role first" is wrong if that role is literally about the skill the posting asks for.
 - Do not cut the one concrete example the cover letter leans on. Relevance is measured against the cover letter you wrote, not just the job posting — interviewers will have read both.
-- Do not cut to fit if the fit is borderline (2.02 pages). Prefer `\enlargethispage{2-3\baselineskip}` on a late section for near-misses; reserve content cuts for genuine overflow (content on page 3 that is more than a single trailing section).
+- Do not cut to fit if the fit is borderline (1.02 pages for a 1-page CV, 2.02 for a 2-page one). Prefer `\enlargethispage{2-3\baselineskip}` on a late section for near-misses; reserve content cuts for genuine overflow (content past the last allowed page that is more than a single trailing section).
 
 ## Recommended Section Order
 

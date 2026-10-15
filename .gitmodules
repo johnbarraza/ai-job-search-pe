@@ -1,0 +1,4 @@
+[submodule "vendor/jev-browse"]
+	path = vendor/jev-browse
+	url = https://github.com/0x7067/jev-browse.git
+	branch = main

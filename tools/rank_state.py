@@ -133,6 +133,20 @@ def entry_location_verdict(entry: dict) -> str | None:
     return legacy if legacy in ("PASS", "FAIL", "FLAG") else None
 
 
+# Peru fork: shared work-mode vocabulary of the portal CLIs and scoring agents.
+MODALITIES = {"presencial", "híbrido", "remoto"}
+_MODALITY_ALIASES = {"hibrido": "híbrido", "hybrid": "híbrido", "remote": "remoto", "onsite": "presencial", "on-site": "presencial"}
+
+
+def norm_modality(value) -> str | None:
+    """A scoring agent's work mode in the shared vocabulary, or None when unknown/invalid."""
+    if not isinstance(value, str):
+        return None
+    v = value.strip().lower()
+    v = _MODALITY_ALIASES.get(v, v)
+    return v if v in MODALITIES else None
+
+
 def cmd_candidates(args) -> int:
     _, seen = load_state(args.state)
     excluded = tracker_pairs(args.tracker)
@@ -163,6 +177,8 @@ def cmd_candidates(args) -> int:
                 "company": entry.get("company"),
                 "url": entry.get("url"),
                 "portal": entry.get("portal"),
+                "location": entry.get("location"),
+                "modality": entry.get("modality"),
                 "deadline": entry.get("deadline"),
                 "posted_date": entry.get("posted_date"),
             }
@@ -320,6 +336,11 @@ def cmd_apply(args) -> int:
         # date and make the entry immortal to rule 6's sweep.
         if result.get("deadline"):
             entry["deadline"] = result["deadline"]
+        # Same rule as deadline: an unknown mode from the agent is not a correction
+        # of a mode the portal already reported.
+        modality = norm_modality(result.get("modality"))
+        if modality:
+            entry["modality"] = modality
         for field in ("strengths", "gaps"):
             value = result.get(field)
             if isinstance(value, list):
@@ -331,6 +352,7 @@ def cmd_apply(args) -> int:
                 "title": entry.get("title"),
                 "company": entry.get("company"),
                 "location": entry.get("location"),
+                "modality": entry.get("modality"),
                 "url": entry.get("url"),
                 "score": score,
                 "verdict": entry["rank_verdict"],

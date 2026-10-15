@@ -59,3 +59,28 @@ describe("runSearch", () => {
     expect(capturedUrl).toContain("f_TPR=r1800");
   });
 });
+
+// Peru fork: the shared `modality` field is filled only from the work-mode filter
+// the search itself applied; guest cards carry no work-mode data of their own.
+describe("runSearch modality", () => {
+  async function run(remote?: string) {
+    globalThis.fetch = (async () => new Response(searchCard("123456", "Analista"))) as typeof fetch;
+    let stdout = "";
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      stdout += chunk.toString();
+      return true;
+    }) as typeof process.stdout.write;
+    await runSearch({ location: "Lima, Peru", remote, jobage: 9999, page: 1, format: "json" });
+    return JSON.parse(stdout).results[0].modality;
+  }
+
+  test("set from --remote", async () => {
+    expect(await run("hybrid")).toBe("híbrido");
+    expect(await run("remote")).toBe("remoto");
+    expect(await run("onsite")).toBe("presencial");
+  });
+
+  test("null when the search did not filter on work mode", async () => {
+    expect(await run(undefined)).toBeNull();
+  });
+});
