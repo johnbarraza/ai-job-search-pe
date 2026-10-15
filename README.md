@@ -1,26 +1,25 @@
 <p align="center">
-  <img src="assets/mascot/pip_flight_loop.gif" alt="Pip, the courier bird" width="200">
+  <img src="assets/peru/banner.svg" alt="AI Job Search, Edición Perú: la búsqueda de empleo que corre en tu máquina, adaptada al mercado laboral peruano" width="100%">
 </p>
 
-# AI Job Search
+# AI Job Search · Edición Perú
 
-*The job search that runs on your machine.*
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/43622?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-43622" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/43622/daily" alt="MadsLorentzen%2Fai-job-search | Trendshift" width="250" height="55"/></a>
-</p>
-
-[![CI](https://github.com/MadsLorentzen/ai-job-search/actions/workflows/ci.yml/badge.svg)](https://github.com/MadsLorentzen/ai-job-search/actions/workflows/ci.yml)
-
-An AI-powered job application framework built on [Claude Code](https://claude.com/claude-code). Fork it, fill in your profile, and let Claude evaluate job postings, tailor your CV, write cover letters, and prepare you for interviews.
-
-> Note: This is an independent open-source project and is not affiliated with, endorsed by, sponsored by, or maintained by Anthropic. Anthropic and Claude Code are referenced only to describe the toolchain this workflow uses.
->
-> This project has **no affiliated cryptocurrency, token, or paid sponsorship program**. Anything claiming otherwise is unauthorized and should be treated as a scam. The only ways to support the project are the Ko-fi link below and contributing on GitHub.
-
-## 🇵🇪 Edición Perú
+*La búsqueda de empleo que corre en tu máquina.*
 
 Este repositorio es un fork de [MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search) (hecho para **Dinamarca**) adaptado al mercado laboral peruano. El flujo `/setup` → `/scrape` → `/rank` → `/apply` → `/interview` es el mismo; cambia todo lo que depende del país.
+
+<p align="center">
+  <img src="assets/peru/portales.svg" alt="Portales peruanos: Computrabajo, Bumeran, Get on Board y LinkedIn, con distritos de Lima y filtros del lado del servidor" width="49%">
+  <img src="assets/peru/navegador.svg" alt="Navegador real con jev: Talento Perú, Laborum, Empleos Perú, Prácticas.pe y la bolsa de tu universidad" width="49%">
+</p>
+<p align="center">
+  <img src="assets/peru/modalidad.svg" alt="Modalidad de cada oferta: presencial, híbrido, remoto o no declarado" width="49%">
+  <img src="assets/peru/nivel.svg" alt="Nivel del puesto: práctica preprofesional, práctica profesional, pasantía, trainee, asistente de investigación, analista, asociado, junior, senior" width="49%">
+</p>
+<p align="center">
+  <img src="assets/peru/programas.svg" alt="Programas de extensión: OSINERGMIN, OSIPTEL, SUNASS, ProInversión, SMV, BCRP, SBS, OSITRAN, INDECOPI" width="49%">
+  <img src="assets/peru/sueldo.svg" alt="Cuánto vale de verdad S/ 3,500 al mes: planilla general S/ 3,950, recibo por honorarios S/ 3,500, pequeña empresa S/ 3,475, microempresa S/ 3,024" width="49%">
+</p>
 
 ### Instalación
 
@@ -42,24 +41,37 @@ Si ya lo clonaste sin `--recurse-submodules`: `git submodule update --init vendo
 | **Get on Board**: datos, analytics, tech y startups en Perú, incluye remotos abiertos a Perú (`-l Peru`) | `.agents/skills/getonboard-search/` |
 | **LinkedIn** (de upstream) con `-l "Lima, Peru"`: páginas públicas, sin iniciar sesión | `.agents/skills/linkedin-search/` |
 | **jev-search** (opcional, de pago): Talento Perú (SERVIR), Laborum, Empleos Perú, Prácticas.pe, Indeed o la bolsa de tu universidad, con un navegador real manejado por [jev-browse](https://github.com/0x7067/jev-browse) | `.agents/skills/jev-search/` + submódulo `vendor/jev-browse` |
-| **Modalidad** presencial / híbrido / remoto en cada resultado, comparada con tu preferencia en `/scrape`, `/rank` y `/apply` | campo `modality` de cada CLI; `Work mode preference` en `CLAUDE.md` |
+| **Modalidad** en cada resultado: `presencial`, `híbrido`, `remoto` o `no declarado`, comparada con tu preferencia | campo `modality`; `Work mode preference` en `CLAUDE.md` |
+| **Nivel del puesto** en cada resultado: práctica preprofesional o profesional, pasantía, programa de extensión, trainee, asistente de investigación, asistente, analista, asociado, junior… comparado con lo que buscas | campo `level`; `Target level` en `CLAUDE.md` |
+| **Programas de extensión** (OSINERGMIN, OSIPTEL, SUNASS, ProInversión, SMV, BCRP, SBS, OSITRAN, INDECOPI) con plazos verificados, ordenados por cierre | `python tools/pe_programas.py` · `data/peru/programas_extension.json` |
 | **CV de 1 página** por defecto (lo más común en Perú); 2 páginas solo si lo pides | `CV length:` en `CLAUDE.md` |
 | **Calculadora de sueldo**: planilla general vs pequeña/micro empresa (REMYPE) vs recibo por honorarios vs prácticas, con RMV, UIT, AFP/ONP y renta 2026 | `python tools/pe_sueldo.py 4000 --comparar` |
 | **Sueldos por empresa** (MyWorkIn, autodeclarados) volcados a `salary_data.json` para `/apply` | `python tools/myworkin_salaries.py "Credicorp"` |
-| **Guía del mercado**: CV peruano (ciclo, quinto/tercio superior, grados), convocatorias del Estado (CAS), Ley de prácticas (subvención, seguro FOLA o EsSalud), cómo leer una oferta, modalidad, distritos de Lima | `.claude/skills/job-application-assistant/10-peru-market.md` |
+| **Guía del mercado**: CV peruano (ciclo, quinto/tercio superior, grados), convocatorias del Estado (CAS), Ley de prácticas (subvención, seguro FOLA o EsSalud), cómo leer una oferta, modalidad, nivel, distritos de Lima | `.claude/skills/job-application-assistant/10-peru-market.md` |
 
 Los portales daneses vienen desactivados (`enabled: false`), igual que `jev-search` hasta que configures sus claves.
 
 ### Ejemplos
 
 ```bash
-bun run .agents/skills/computrabajo-search/cli/src/cli.ts search -q "analista de datos" -l "San Isidro" --jobage 7 --format table
+bun run .agents/skills/computrabajo-search/cli/src/cli.ts search -q "practicante economia" -l "San Isidro" --jobage 7 --format table
 bun run .agents/skills/bumeran-search/cli/src/cli.ts search -q "practicante" -l "Lima" --level trainee-pasante --remote hybrid --format table
 bun run .agents/skills/getonboard-search/cli/src/cli.ts search -q "data analyst" -l Peru --format table
 bun run .agents/skills/jev-search/cli/src/cli.ts search --site talentoperu -q "economista" -l "Lima" --format table
+python tools/pe_programas.py --career economía
 python tools/pe_sueldo.py 3500 --comparar
 python tools/pe_sueldo.py 1230 --regimen practicas
 ```
+
+```text
+ID                               TITLE                                    LOCATION               MODALIDAD    NIVEL
+FA8A687D196315B661373E686DCF3405 Practicante Preprofesional de Economía y Chorrillos, Lima       híbrido      práctica preprofesional
+FCA076EA60C14D4B61373E686DCF3405 Practicante Profesional de Economía, Adm Santiago De Surco, Lim presencial   práctica profesional
+```
+
+### Programas de extensión
+
+Becas de formación de reguladores, del BCRP y de la SMV (enero a marzo, con examen) que suelen abrir prácticas en la entidad. Sus ventanas de inscripción son fijas (septiembre a noviembre) y no aparecen en los portales de empleo, así que viven en un registro aparte, `data/peru/programas_extension.json`. Cada entrada tiene su fuente, su estado (`abierta`, `por_confirmar`, `cerrada`) y su fecha de verificación. `python tools/pe_programas.py` lista las abiertas por fecha de cierre (🔥 a 7 días o menos), y `/scrape` las muestra en su propia tabla y re-verifica la página oficial de las que cierran pronto. Una fecha que solo aparece en una fuente secundaria queda **por confirmar** y nunca se presenta como hecho.
 
 ### jev-search y el submódulo jev-browse
 
@@ -78,7 +90,31 @@ Necesita Node 22+, Chrome y claves de modelo (`OPENROUTER_API_KEY` o `TYPESAFE_A
 
 [Agent-Reach](https://github.com/Panniantong/Agent-Reach) resuelve LinkedIn con `linkedin-mcp-server`, que maneja **tu cuenta** con la cookie de sesión de tu navegador. Automatizar la cuenta va contra el acuerdo de usuario de LinkedIn, y el propio Agent-Reach advierte riesgo de bloqueo. Para buscar ofertas, `linkedin-search` ya trae resultados y descripciones completas sin iniciar sesión. Si igual lo quieres, puedes agregarlo tú mismo, de preferencia con una cuenta secundaria: `claude mcp add linkedin -- uvx mcp-server-linkedin@latest`.
 
-Todos los CLIs usan un User-Agent honesto que los identifica y son para **uso personal y con bajo volumen**. Las fuentes y la fecha de verificación de cada cifra están en `10-peru-market.md`. El resto de este README es el original de upstream, en inglés, salvo una nota: en este fork el CV tailored es de **1 página** por defecto.
+Todos los CLIs usan un User-Agent honesto que los identifica y son para **uso personal y con bajo volumen**. Las fuentes y la fecha de verificación de cada cifra están en `10-peru-market.md`.
+
+---
+
+*Lo que sigue es el README original de upstream, en inglés. Una diferencia: en este fork el CV adaptado es de **1 página** por defecto.*
+
+<p align="center">
+  <img src="assets/mascot/pip_flight_loop.gif" alt="Pip, the courier bird" width="200">
+</p>
+
+# AI Job Search
+
+*The job search that runs on your machine.*
+
+<p align="center">
+  <a href="https://trendshift.io/repositories/43622?utm_source=trendshift-badge&amp;utm_medium=badge&amp;utm_campaign=badge-trendshift-43622" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/trendshift/repositories/43622/daily" alt="MadsLorentzen%2Fai-job-search | Trendshift" width="250" height="55"/></a>
+</p>
+
+[![CI](https://github.com/MadsLorentzen/ai-job-search/actions/workflows/ci.yml/badge.svg)](https://github.com/MadsLorentzen/ai-job-search/actions/workflows/ci.yml)
+
+An AI-powered job application framework built on [Claude Code](https://claude.com/claude-code). Fork it, fill in your profile, and let Claude evaluate job postings, tailor your CV, write cover letters, and prepare you for interviews.
+
+> Note: This is an independent open-source project and is not affiliated with, endorsed by, sponsored by, or maintained by Anthropic. Anthropic and Claude Code are referenced only to describe the toolchain this workflow uses.
+>
+> This project has **no affiliated cryptocurrency, token, or paid sponsorship program**. Anything claiming otherwise is unauthorized and should be treated as a scam. The only ways to support the project are the Ko-fi link below and contributing on GitHub.
 
 ## Does it actually work?
 

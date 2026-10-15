@@ -36,13 +36,14 @@ function renderTable(cards: JobCard[]): string {
     const title = (c.title || "").slice(0, 40).padEnd(40)
     const company = (c.company || "—").slice(0, 22).padEnd(22)
     const loc = (c.location || "—").slice(0, 18).padEnd(18)
-    const mode = (c.modality || "—").padEnd(10)
+    const mode = c.modality.padEnd(12)
+    const level = c.level.slice(0, 20).padEnd(20)
     const date = (c.date || "—").slice(0, 10)
-    return `${c.id.slice(0, 36).padEnd(36)} ${title} ${company} ${loc} ${mode} ${date}`
+    return `${c.id.slice(0, 36).padEnd(36)} ${title} ${company} ${loc} ${mode} ${level} ${date}`
   })
   const header =
     "ID".padEnd(36) + " " + "TITLE".padEnd(40) + " " + "COMPANY".padEnd(22) + " " + "LOCATION".padEnd(18) + " " +
-    "MODALIDAD".padEnd(10) + " DATE"
+    "MODALIDAD".padEnd(12) + " " + "NIVEL".padEnd(20) + " DATE"
   return [header, "-".repeat(header.length), ...rows].join("\n")
 }
 
@@ -76,7 +77,7 @@ export async function runSearch(opts: SearchOpts): Promise<number> {
         cards
           .map(
             (c) =>
-              `${c.title}\n  ${c.company || "—"} · ${c.location || "—"} · ${c.modality ?? "modalidad no indicada"} · ${c.date || "—"}\n  id: ${c.id}\n  ${c.url}`,
+              `${c.title}\n  ${c.company || "—"} · ${c.location || "—"} · ${c.modality} · ${c.level} · ${c.date || "—"}\n  id: ${c.id}\n  ${c.url}`,
           )
           .join("\n\n") + "\n",
       )

@@ -76,9 +76,9 @@ computrabajo-search: -q "[YOUR_ADJACENT_TITLE_1]" -l "[YOUR_CITY]"
 bumeran-search:      -q "[YOUR_ADJACENT_TITLE_2]" -l "[YOUR_CITY]" --level junior
 ```
 
-### Priority 4: Sector público y prácticas
+### Priority 4: Sector público, prácticas y programas de extensión
 
-Public-sector jobs and internships are published on Talento Perú with a fixed, short window (at least 10 business days); see `10-peru-market.md` section 2. Remove this category if you do not want public-sector roles.
+Public-sector jobs and internships are published on Talento Perú with a fixed, short window (at least 10 business days); see `10-peru-market.md` section 2. Extension programmes (PEU, cursos de extensión, PEMV) are not searched here: `/scrape` Step 1d lists them from `data/peru/programas_extension.json` via `python tools/pe_programas.py`. Remove this category if you do not want public-sector roles.
 
 ```
 jev-search:          --site talentoperu -q "[YOUR_PRIMARY_JOB_TITLE_1]" -l "[YOUR_CITY]"   (only when enabled)

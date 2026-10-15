@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" role="img" aria-label="Modalidad: Cada resultado dice cómo se trabaja y se compara con tu preferencia. Lo que no se dice no se adivina.">
+<style>
+  .card { fill: #ffffff; stroke: #d0d7de; }
+  .title { fill: #1f2328; font: 700 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .eyebrow { fill: #D91023; font: 700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; letter-spacing: 1.4px; }
+  .text { fill: #59636e; font: 400 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .chip-t { font: 600 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .val { fill: #1f2328; font: 700 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .lbl { fill: #59636e; font: 500 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .track { fill: #eff2f5; }
+  @media (prefers-color-scheme: dark) {
+    .card { fill: #161b22; stroke: #30363d; }
+    .title { fill: #e6edf3; }
+    .eyebrow { fill: #ff6b7a; }
+    .text, .lbl { fill: #9198a1; }
+    .val { fill: #e6edf3; }
+    .track { fill: #21262d; }
+  }
+
+  .c-blue { fill: #ddf4ff; } .t-blue { fill: #0550ae; } @media (prefers-color-scheme: dark) { .c-blue { fill: #0c2d4f; } .t-blue { fill: #79c0ff; } }
+  .c-gray { fill: #eff2f5; } .t-gray { fill: #59636e; } @media (prefers-color-scheme: dark) { .c-gray { fill: #21262d; } .t-gray { fill: #9198a1; } }
+  .c-green { fill: #dafbe1; } .t-green { fill: #116329; } @media (prefers-color-scheme: dark) { .c-green { fill: #0f2e1b; } .t-green { fill: #7ee787; } }
+  .c-purple { fill: #fbefff; } .t-purple { fill: #6639ba; } @media (prefers-color-scheme: dark) { .c-purple { fill: #2b1d47; } .t-purple { fill: #d2a8ff; } }
+  .c-red { fill: #fff0f1; } .t-red { fill: #a40e1c; } @media (prefers-color-scheme: dark) { .c-red { fill: #3d1418; } .t-red { fill: #ffb3bb; } }
+</style><clipPath id="clip-modalidad"><rect x="1" y="1" width="598" height="278" rx="16"/></clipPath><rect x="1" y="1" width="598" height="278" rx="16" class="card" stroke-width="1"/><rect x="1" y="1" width="8" height="278" fill="#D91023" clip-path="url(#clip-modalidad)"/><text x="32" y="42" class="eyebrow">CADA OFERTA</text><text x="32" y="78" class="title">Modalidad</text><text x="32" y="108" class="text">Cada resultado dice cómo se trabaja y se compara con tu</text><text x="32" y="129" class="text">preferencia. Lo que no se dice no se adivina.</text><rect x="32" y="151" width="97" height="28" rx="14" class="c-blue"/><text x="80" y="170" text-anchor="middle" class="chip-t t-blue">presencial</text><rect x="137" y="151" width="75" height="28" rx="14" class="c-purple"/><text x="174" y="170" text-anchor="middle" class="chip-t t-purple">híbrido</text><rect x="220" y="151" width="68" height="28" rx="14" class="c-green"/><text x="254" y="170" text-anchor="middle" class="chip-t t-green">remoto</text><rect x="295" y="151" width="111" height="28" rx="14" class="c-gray"/><text x="351" y="170" text-anchor="middle" class="chip-t t-gray">no declarado</text></svg>

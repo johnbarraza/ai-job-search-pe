@@ -1,3 +1,4 @@
+import { classifyLevel, type Modality } from "../peru.js"
 import {
   SEARCH_URL,
   htmlFetch,
@@ -56,11 +57,12 @@ function renderTable(cards: JobCard[]): string {
 export async function runSearch(opts: SearchOpts): Promise<number> {
   try {
     const html = await htmlFetch(buildUrl(opts))
-    // Peru fork: every portal CLI emits a normalized `modality`. LinkedIn's guest cards
-    // carry no work-mode field, so it is known only when the search itself filtered on
-    // it (f_WT); otherwise null, never guessed.
-    const modality = { remote: "remoto", hybrid: "híbrido", onsite: "presencial" }[opts.remote ?? ""] ?? null
-    let cards = parseJobCards(html).map((c) => ({ ...c, modality }))
+    // Peru fork: every portal CLI emits `modality` and `level` in the shared vocabulary
+    // (src/peru.ts). LinkedIn's guest cards carry no work-mode field, so the mode is known
+    // only when the search itself filtered on it (f_WT); otherwise "no declarado".
+    const modality: Modality =
+      ({ remote: "remoto", hybrid: "híbrido", onsite: "presencial" } as const)[opts.remote as "remote"] ?? "no declarado"
+    let cards = parseJobCards(html).map((c) => ({ ...c, modality, level: classifyLevel(c.title) }))
     if (opts.limit !== undefined && opts.limit >= 0) cards = cards.slice(0, opts.limit)
 
     if (opts.format === "table") {

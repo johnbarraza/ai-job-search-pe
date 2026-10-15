@@ -16,6 +16,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { join, resolve } from "node:path"
 import { createHash } from "node:crypto"
+import { classifyLevel, normalizeModality, type Level, type Modality } from "./peru.js"
 
 export const REPO_ROOT = resolve(import.meta.dir, "../../../../..")
 
@@ -118,7 +119,8 @@ const GUARDRAILS =
 const RESULT_SHAPE =
   "a JSON array (no prose, no code fences) with one object per posting, using exactly these keys: " +
   '"title", "company" (employer or public entity), "location", "modality" ("presencial", "híbrido", ' +
-  '"remoto", or null when the posting does not say), "salary" (as written, or null), "deadline" ' +
+  '"remoto", or null when the posting does not say), "level" (the posting\'s own seniority or internship ' +
+  'label as written, e.g. "prácticas preprofesionales", "junior", or null), "salary" (as written, or null), "deadline" ' +
   '(application closing date as YYYY-MM-DD, or null), "date" (publication date as YYYY-MM-DD, or null), ' +
   '"url" (the posting\'s own link if one is visible on the page, else null), "ref" (convocatoria number or ' +
   "posting id if shown, else null). Copy values as shown on the page; use null for anything not shown."
@@ -151,16 +153,7 @@ export function buildDetailGoal(): string {
 // Answer parsing
 // ---------------------------------------------------------------------------
 
-export type Modality = "presencial" | "híbrido" | "remoto" | null
-
-export function normalizeModality(value: unknown): Modality {
-  if (typeof value !== "string") return null
-  const low = value.toLowerCase()
-  if (/h[ií]brid|hybrid|presencial y remoto|semipresencial/.test(low)) return "híbrido"
-  if (/remot|teletrabajo|home office/.test(low)) return "remoto"
-  if (/presencial|on-?site/.test(low)) return "presencial"
-  return null
-}
+export { normalizeModality }
 
 export interface JobCard {
   id: string
@@ -170,6 +163,7 @@ export interface JobCard {
   date: string | null
   url: string | null
   modality: Modality
+  level: Level
   salary: string | null
   deadline: string | null
   ref: string | null
@@ -244,7 +238,8 @@ export function parseSearchAnswer(answer: string, site: string, startUrl: string
       location: str(r.location),
       date: isoDate(r.date),
       url,
-      modality: normalizeModality(r.modality),
+      modality: normalizeModality(str(r.modality)),
+      level: classifyLevel(title, str(r.level)),
       salary: str(r.salary),
       deadline: isoDate(r.deadline),
       ref,
@@ -259,6 +254,7 @@ export interface JobDetail {
   company: string | null
   location: string | null
   modality: Modality
+  level: Level
   salary: string | null
   deadline: string | null
   date: string | null
@@ -278,7 +274,8 @@ export function parseDetailAnswer(answer: string, url: string): JobDetail {
     title: str(r.title),
     company: str(r.company),
     location: str(r.location),
-    modality: normalizeModality(r.modality),
+    modality: normalizeModality(str(r.modality)),
+    level: classifyLevel(str(r.title), str(r.level)),
     salary: str(r.salary),
     deadline: isoDate(r.deadline),
     date: isoDate(r.date),

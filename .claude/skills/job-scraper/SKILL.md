@@ -5,7 +5,7 @@ description: >
   (LinkedIn, local job boards, and any skills added with /add-portal). Deduplicates
   across runs. Triggers on: job scrape, find jobs, search jobs, new jobs, job search,
   scrape jobs, /scrape
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bun --version), Bash(bun run .agents/skills/*/cli/src/cli.ts *), Bash(python tools/job_key.py:*), Bash(python3 tools/job_key.py:*), WebFetch, WebSearch, Agent, AskUserQuestion
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bun --version), Bash(bun run .agents/skills/*/cli/src/cli.ts *), Bash(python tools/job_key.py:*), Bash(python3 tools/job_key.py:*), Bash(python tools/pe_programas.py:*), Bash(python3 tools/pe_programas.py:*), WebFetch, WebSearch, Agent, AskUserQuestion
 ---
 
 # Job Scraper
@@ -85,15 +85,40 @@ Use the site-specific query strings from `search-queries.md` directly as WebSear
 
 Tag each fallback result as WebSearch-sourced, keeping the portal tag when the fallback stands in for an installed portal whose CLI failed. Step 4 persists this as the entry's `source`, and Step 5 reports which portals ran on the fallback this run.
 
+#### 1d. Programas de extensión (Peru fork)
+
+Extension programmes (PEU of OSINERGMIN, OSIPTEL, SUNASS, ProInversión, INDECOPI; BCRP's
+cursos de extensión; SMV's PEMV; SBS; OSITRAN) are scholarship courses that lead to
+prácticas and jobs at the institution, and they run on fixed yearly windows rather than
+appearing on job boards. When the candidate's `Target level` includes `programa de
+extensión` (or they are a student or recent graduate), run:
+
+```bash
+python tools/pe_programas.py --json
+```
+
+It reads the verified registry `data/peru/programas_extension.json` offline. Present the
+open calls in their own table in Step 5. Two rules:
+- A call whose `effective_status` is `por_confirmar` has no verified date: show it as
+  "fecha por confirmar" with its official URL, never the date from its `notes`.
+- An entry with `stale: true`, or one closing within 7 days, is re-checked first: WebFetch its
+  `url` (official page) and, if the page confirms new dates or status, update the registry
+  entry (`inscription_open`, `inscription_close`, `exam`, `status`, `verified_on`, `sources`)
+  before presenting it. A page that cannot be fetched leaves the entry as it was, marked
+  "no re-verificado".
+
+These are not job postings: do not write them to `seen_jobs.json` or rank them.
+
 ### Step 2: Fetch & Parse
 
 For each promising result from Step 1:
 
 **From CLI results:** Search output already includes title, company, location, date,
-and URL. Every Peru portal CLI also emits a normalized `modality` (`presencial` /
-`híbrido` / `remoto`, or `null`); LinkedIn fills it only when the search used `--remote`. When it is
-`null`, read the work mode from the detail fetch's description; if the posting does not
-say, record `null` and show "no indicada" — never infer it. For jobs worth a deeper look, fetch full detail with that portal's `detail`
+and URL. Every Peru portal CLI also emits `modality` (`presencial` / `híbrido` / `remoto` / `no declarado`) and `level`, the
+position level classified from the title (`práctica preprofesional`, `práctica profesional`, `práctica`, `pasantía`, `programa de extensión`, `trainee`, `asistente de investigación`, `asistente`, `analista`, `asociado`, `junior`, `semi senior`, `senior`, `jefatura`, `no declarado`); both use the shared vocabulary in each
+CLI's `src/peru.ts`. LinkedIn knows the mode only when the search used `--remote`. When
+either is `no declarado`, read it from the detail fetch's description; if the posting does
+not say, keep `no declarado` — never infer it. For jobs worth a deeper look, fetch full detail with that portal's `detail`
 command (see its SKILL.md — do not guess flags) to extract **key requirements**,
 **application deadline**, and a brief description snippet.
 
@@ -142,8 +167,14 @@ For each new job, do a rapid fit check (NOT the full evaluation from `04-job-eva
 
 **Work-mode check:** compare the job's `modality` with the `Work mode preference` line in
 CLAUDE.md. A mode the candidate rules out lowers the match one level and is named in the
-highlight bullets ("presencial 5 días en Callao; tu preferencia es híbrido"); an unknown
-mode is not penalized but is shown as "no indicada".
+highlight bullets ("presencial 5 días en Callao; tu preferencia es híbrido"); `no declarado`
+is not penalized but is shown as such.
+
+**Level check:** compare the job's `level` with the `Target level` line in CLAUDE.md. A level
+outside the target (e.g. `senior` or `jefatura` for a candidate targeting prácticas) is
+**Low** whatever the skills overlap, and the level is named in the highlights; `no declarado`
+is judged from the posting's experience requirement ("2 años de experiencia" is not an
+internship).
 
 **Language override:** before assigning a match level, check the posting against `04-job-evaluation.md`'s Language Gate (a required language you haven't declared at all in your CLAUDE.md Languages table). A required language that's entirely undeclared overrides skill fit: mark it **Low** regardless of how well the skills align, and name it in the highlight bullets so it isn't buried under an otherwise-good-looking match. A **declared** language at a requirement that reads higher than your declared level is *not* an override — score fit normally, but add a red-flag bullet under that job's highlights (Step 5) quoting the posting's requirement next to your declared level, so the gap is visible without being auto-downgraded.
 
@@ -171,7 +202,8 @@ It prints one line: the canonical key for that posting. The key must be a pure f
       "fit": "high/medium/low",
       "status": "new/skipped/ranked/expired",
       "portal": "<source portal skill, e.g. jobindex-search>",
-      "modality": "presencial" | "híbrido" | "remoto" | null,
+      "modality": "presencial" | "híbrido" | "remoto" | "no declarado",
+      "level": "<shared level vocabulary, e.g. práctica preprofesional | analista | no declarado>",
       "source": "cli/websearch"
     }
   }
@@ -258,11 +290,20 @@ fallback (websearch): <portal-name>, <portal-name>
 health: <portal-name> - degraded (company null on all 12 results); parsing anchors in .agents/skills/<portal-name>/url-reference.md
 health: <portal-name> - broken (0 results for the SKILL.md test query and a broader retry); parsing anchors in .agents/skills/<portal-name>/url-reference.md
 
-| # | Fit | Title | Company | Location | Modalidad | Deadline | URL |
-|---|-----|-------|---------|----------|-----------|----------|-----|
-| 1 | High | ... | ... | ... | híbrido | ... | [Link](...) |
+| # | Fit | Title | Company | Location | Modalidad | Nivel | Deadline | URL |
+|---|-----|-------|---------|----------|-----------|-------|----------|-----|
+| 1 | High | ... | ... | ... | híbrido | práctica preprofesional | ... | [Link](...) |
 
 If Step 2.5 flagged a mass-posting pattern, note it in the Title cell (e.g. "Frontend Developer (posted in 6 cities)") rather than burying it. Do the same for a declared-language-insufficient-level flag from the Language Gate (e.g. "Backend Engineer ⚠ fluent English required") - both are signals the user should see at a glance, not just in the detail highlights below.
+
+### Programas de extensión (Peru fork, from Step 1d)
+
+| Institución | Programa | Cierra | Días | Modalidad | Requisitos clave | URL |
+|---|---|---|---|---|---|---|
+| OSIPTEL | PEU 2027 | 2026-10-31 | 16 | presencial | último año, egresados o bachilleres | [Link](...) |
+
+Mark a call closing within 7 days with 🔥 and list `por_confirmar` calls below the table as
+"fecha por confirmar · <URL>".
 
 ### High-Match Highlights
 For each high-match job, add 2-3 bullet points:

@@ -32,7 +32,8 @@ export async function runDetail(opts: DetailOpts, run: Runner = defaultRunner): 
       const lines = [
         job.title ?? "(sin título)",
         `${job.company || "—"} · ${job.location || "—"}`,
-        `Modalidad: ${job.modality ?? "no indicada"}`,
+        `Modalidad: ${job.modality}`,
+        `Nivel: ${job.level}`,
         job.salary ? `Remuneración: ${job.salary}` : "",
         job.contract ? `Contrato: ${job.contract}` : "",
         job.schedule ? `Horario: ${job.schedule}` : "",

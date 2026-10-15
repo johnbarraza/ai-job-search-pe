@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="250" viewBox="0 0 1200 250" role="img" aria-label="AI Job Search, Edición Perú: la búsqueda de empleo que corre en tu máquina, adaptada al mercado laboral peruano.">
+<style>
+  .card { fill: #ffffff; stroke: #d0d7de; }
+  .title { fill: #1f2328; font: 700 46px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .eyebrow { fill: #D91023; font: 700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; letter-spacing: 1.4px; }
+  .text { fill: #59636e; font: 400 19px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .chip-t { font: 600 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .val { fill: #1f2328; font: 700 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .lbl { fill: #59636e; font: 500 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .track { fill: #eff2f5; }
+  @media (prefers-color-scheme: dark) {
+    .card { fill: #161b22; stroke: #30363d; }
+    .title { fill: #e6edf3; }
+    .eyebrow { fill: #ff6b7a; }
+    .text, .lbl { fill: #9198a1; }
+    .val { fill: #e6edf3; }
+    .track { fill: #21262d; }
+  }
+
+  .c-red { fill: #fff0f1; } .t-red { fill: #a40e1c; } @media (prefers-color-scheme: dark) { .c-red { fill: #3d1418; } .t-red { fill: #ffb3bb; } }
+  .c-blue { fill: #ddf4ff; } .t-blue { fill: #0550ae; } @media (prefers-color-scheme: dark) { .c-blue { fill: #0c2d4f; } .t-blue { fill: #79c0ff; } }
+  .c-green { fill: #dafbe1; } .t-green { fill: #116329; } @media (prefers-color-scheme: dark) { .c-green { fill: #0f2e1b; } .t-green { fill: #7ee787; } }
+  .c-amber { fill: #fff8c5; } .t-amber { fill: #7d4e00; } @media (prefers-color-scheme: dark) { .c-amber { fill: #3b2a06; } .t-amber { fill: #e3b341; } }
+  .c-purple { fill: #fbefff; } .t-purple { fill: #6639ba; } @media (prefers-color-scheme: dark) { .c-purple { fill: #2b1d47; } .t-purple { fill: #d2a8ff; } }
+</style><rect x="1" y="1" width="1198" height="248" rx="20" class="card" stroke-width="1"/><rect x="48" y="60" width="40" height="120" rx="6" fill="#D91023"/><rect x="88" y="60" width="40" height="120" fill="#ffffff" stroke="#d0d7de"/><rect x="128" y="60" width="40" height="120" rx="6" fill="#D91023"/><text x="200" y="76" class="eyebrow">AI JOB SEARCH · CLAUDE CODE · FORK DE MADSLORENTZEN/AI-JOB-SEARCH</text><text x="200" y="128" class="title">Edición Perú</text><text x="200" y="164" class="text">La búsqueda de empleo que corre en tu máquina, adaptada al mercado laboral peruano.</text><rect x="200" y="188" width="373" height="28" rx="14" class="c-red"/><text x="387" y="207" text-anchor="middle" class="chip-t t-red">Computrabajo · Bumeran · Get on Board · LinkedIn</text><rect x="581" y="188" width="126" height="28" rx="14" class="c-blue"/><text x="644" y="207" text-anchor="middle" class="chip-t t-blue">CV de 1 página</text><rect x="715" y="188" width="184" height="28" rx="14" class="c-amber"/><text x="807" y="207" text-anchor="middle" class="chip-t t-amber">Programas de extensión</text><rect x="908" y="188" width="140" height="28" rx="14" class="c-green"/><text x="978" y="207" text-anchor="middle" class="chip-t t-green">Sueldo real 2026</text></svg>

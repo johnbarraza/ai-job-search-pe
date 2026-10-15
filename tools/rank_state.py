@@ -133,18 +133,46 @@ def entry_location_verdict(entry: dict) -> str | None:
     return legacy if legacy in ("PASS", "FAIL", "FLAG") else None
 
 
-# Peru fork: shared work-mode vocabulary of the portal CLIs and scoring agents.
-MODALITIES = {"presencial", "híbrido", "remoto"}
-_MODALITY_ALIASES = {"hibrido": "híbrido", "hybrid": "híbrido", "remote": "remoto", "onsite": "presencial", "on-site": "presencial"}
+# Peru fork: shared vocabulary of the portal CLIs and scoring agents (the TypeScript
+# source of truth is src/peru.ts in each Peru portal CLI).
+UNDECLARED = "no declarado"
+MODALITIES = {"presencial", "híbrido", "remoto", UNDECLARED}
+_MODALITY_ALIASES = {
+    "hibrido": "híbrido", "hybrid": "híbrido", "remote": "remoto", "onsite": "presencial",
+    "on-site": "presencial", "no declarada": UNDECLARED, "no indicada": UNDECLARED,
+}
+LEVELS = {
+    "práctica preprofesional", "práctica profesional", "práctica", "pasantía",
+    "programa de extensión", "trainee", "asistente de investigación", "asistente",
+    "analista", "asociado", "junior", "semi senior", "senior", "jefatura", UNDECLARED,
+}
 
 
 def norm_modality(value) -> str | None:
-    """A scoring agent's work mode in the shared vocabulary, or None when unknown/invalid."""
+    """A work mode in the shared vocabulary, or None when missing/invalid."""
     if not isinstance(value, str):
         return None
     v = value.strip().lower()
     v = _MODALITY_ALIASES.get(v, v)
     return v if v in MODALITIES else None
+
+
+def norm_level(value) -> str | None:
+    """A position level in the shared vocabulary, or None when missing/invalid."""
+    if not isinstance(value, str):
+        return None
+    v = value.strip().lower()
+    return v if v in LEVELS else None
+
+
+def merge_vocab(entry: dict, field: str, value: str | None) -> None:
+    """Store a vocabulary value; "no declarado" never overwrites a known value, because
+    absence of evidence in one fetch is not a correction of what the portal reported."""
+    if value is None:
+        return
+    if value == UNDECLARED and entry.get(field) not in (None, UNDECLARED):
+        return
+    entry[field] = value
 
 
 def cmd_candidates(args) -> int:
@@ -179,6 +207,7 @@ def cmd_candidates(args) -> int:
                 "portal": entry.get("portal"),
                 "location": entry.get("location"),
                 "modality": entry.get("modality"),
+                "level": entry.get("level"),
                 "deadline": entry.get("deadline"),
                 "posted_date": entry.get("posted_date"),
             }
@@ -336,11 +365,10 @@ def cmd_apply(args) -> int:
         # date and make the entry immortal to rule 6's sweep.
         if result.get("deadline"):
             entry["deadline"] = result["deadline"]
-        # Same rule as deadline: an unknown mode from the agent is not a correction
-        # of a mode the portal already reported.
-        modality = norm_modality(result.get("modality"))
-        if modality:
-            entry["modality"] = modality
+        # Same rule as deadline: an unknown value from the agent is not a correction
+        # of what the portal already reported.
+        merge_vocab(entry, "modality", norm_modality(result.get("modality")))
+        merge_vocab(entry, "level", norm_level(result.get("level")))
         for field in ("strengths", "gaps"):
             value = result.get(field)
             if isinstance(value, list):
@@ -353,6 +381,7 @@ def cmd_apply(args) -> int:
                 "company": entry.get("company"),
                 "location": entry.get("location"),
                 "modality": entry.get("modality"),
+                "level": entry.get("level"),
                 "url": entry.get("url"),
                 "score": score,
                 "verdict": entry["rank_verdict"],

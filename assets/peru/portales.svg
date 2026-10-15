@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="280" viewBox="0 0 600 280" role="img" aria-label="Portales peruanos: CLIs sin dependencias que buscan en vivo, con distritos de Lima y filtros del lado del servidor.">
+<style>
+  .card { fill: #ffffff; stroke: #d0d7de; }
+  .title { fill: #1f2328; font: 700 26px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .eyebrow { fill: #D91023; font: 700 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; letter-spacing: 1.4px; }
+  .text { fill: #59636e; font: 400 15px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .chip-t { font: 600 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .val { fill: #1f2328; font: 700 14px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .lbl { fill: #59636e; font: 500 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; }
+  .track { fill: #eff2f5; }
+  @media (prefers-color-scheme: dark) {
+    .card { fill: #161b22; stroke: #30363d; }
+    .title { fill: #e6edf3; }
+    .eyebrow { fill: #ff6b7a; }
+    .text, .lbl { fill: #9198a1; }
+    .val { fill: #e6edf3; }
+    .track { fill: #21262d; }
+  }
+
+  .c-gray { fill: #eff2f5; } .t-gray { fill: #59636e; } @media (prefers-color-scheme: dark) { .c-gray { fill: #21262d; } .t-gray { fill: #9198a1; } }
+  .c-red { fill: #fff0f1; } .t-red { fill: #a40e1c; } @media (prefers-color-scheme: dark) { .c-red { fill: #3d1418; } .t-red { fill: #ffb3bb; } }
+</style><clipPath id="clip-portales"><rect x="1" y="1" width="598" height="278" rx="16"/></clipPath><rect x="1" y="1" width="598" height="278" rx="16" class="card" stroke-width="1"/><rect x="1" y="1" width="8" height="278" fill="#D91023" clip-path="url(#clip-portales)"/><text x="32" y="42" class="eyebrow">BUSCAR</text><text x="32" y="78" class="title">Portales peruanos</text><text x="32" y="108" class="text">CLIs sin dependencias que buscan en vivo, con distritos de Lima</text><text x="32" y="129" class="text">y filtros del lado del servidor.</text><rect x="32" y="151" width="111" height="28" rx="14" class="c-red"/><text x="88" y="170" text-anchor="middle" class="chip-t t-red">Computrabajo</text><rect x="151" y="151" width="75" height="28" rx="14" class="c-red"/><text x="189" y="170" text-anchor="middle" class="chip-t t-red">Bumeran</text><rect x="234" y="151" width="111" height="28" rx="14" class="c-red"/><text x="290" y="170" text-anchor="middle" class="chip-t t-red">Get on Board</text><rect x="354" y="151" width="82" height="28" rx="14" class="c-red"/><text x="395" y="170" text-anchor="middle" class="chip-t t-red">LinkedIn</text><rect x="32" y="187" width="199" height="28" rx="14" class="c-gray"/><text x="131" y="206" text-anchor="middle" class="chip-t t-gray">San Isidro · SJL · Surco</text></svg>

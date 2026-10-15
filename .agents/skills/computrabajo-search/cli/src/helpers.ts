@@ -22,6 +22,8 @@
 // the zero-dependency approach used by the other portal skills in this repo (see
 // linkedin-search/cli/src/helpers.ts).
 
+import { classifyLevel, normalizeModality, type Level, type Modality } from "./peru.js"
+
 export const BASE_URL = "https://pe.computrabajo.com"
 
 export function writeError(error: string, code: string): void {
@@ -104,25 +106,20 @@ export interface JobCard {
   salary: string | null
   /** Workplace chip ("Remoto", "Presencial y remoto"); null when the card shows none (on-site). */
   workplaceType: string | null
-  /** Normalized work mode shared by every Peru portal CLI: "presencial" | "híbrido" | "remoto". */
+  /** Work mode in the shared Peru vocabulary (src/peru.ts): presencial | híbrido | remoto | no declarado. */
   modality: Modality
+  /** Position level in the shared Peru vocabulary (src/peru.ts), from the title. */
+  level: Level
 }
 
-export type Modality = "presencial" | "híbrido" | "remoto" | null
-
 /**
- * Normalize Computrabajo's workplace chip. Computrabajo only tags remote ("Remoto")
+ * Work mode from Computrabajo's workplace chip. Computrabajo only tags remote ("Remoto")
  * and hybrid ("Presencial y remoto") postings; an untagged posting is on-site. Checked
  * live (October 2026): of 8 untagged Lima postings, none mentioned remote or hybrid
  * work in its description and one said "presencialmente".
  */
-export function normalizeModality(chip: string | null): Modality {
-  if (!chip) return "presencial"
-  const low = chip.toLowerCase()
-  if (/h[ií]brid|presencial y remoto|remoto y presencial|semipresencial/.test(low)) return "híbrido"
-  if (/remot|teletrabajo|home office/.test(low)) return "remoto"
-  if (/presencial/.test(low)) return "presencial"
-  return null
+export function modalityFromChip(chip: string | null): Modality {
+  return chip ? normalizeModality(chip) : "presencial"
 }
 
 export interface JobDetail extends JobCard {
@@ -411,7 +408,7 @@ function parseOneCard(chunk: string, now: Date): JobCard | null {
   const workMatch = chunk.match(/<span class="icon i_home(?:_office)?"><\/span>\s*([\s\S]*?)\s*<\/span>/)
   const workplaceType = workMatch ? clean(workMatch[1]) : null
 
-  return { id, title, company, companyUrl, location, date, url, salary, workplaceType, modality: normalizeModality(workplaceType) }
+  return { id, title, company, companyUrl, location, date, url, salary, workplaceType, modality: modalityFromChip(workplaceType), level: classifyLevel(title) }
 }
 
 /** Classify tag chips (salary / contract type / schedule / workplace) by keyword. */
@@ -533,7 +530,8 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     contractType,
     schedule,
     workplaceType,
-    modality: normalizeModality(workplaceType),
+    modality: modalityFromChip(workplaceType),
+    level: classifyLevel(title),
     requirements,
     skills,
     applyUrl,

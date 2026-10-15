@@ -80,7 +80,7 @@ describe("runSearch modality", () => {
     expect(await run("onsite")).toBe("presencial");
   });
 
-  test("null when the search did not filter on work mode", async () => {
-    expect(await run(undefined)).toBeNull();
+  test("'no declarado' when the search did not filter on work mode", async () => {
+    expect(await run(undefined)).toBe("no declarado");
   });
 });

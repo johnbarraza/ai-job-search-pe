@@ -200,10 +200,11 @@ describe("normalizeModality", () => {
     expect(normalizeModality("fully_remote")).toBe("remoto");
     expect(normalizeModality("remote_global")).toBe("remoto");
     expect(normalizeModality("no_remote")).toBe("presencial");
-    expect(normalizeModality(undefined)).toBeNull();
+    expect(normalizeModality(undefined)).toBe("no declarado");
   });
 
   test("job cards carry it", () => {
     expect(toJobCard(rawJob({ remote_modality: "hybrid" })).modality).toBe("híbrido");
+    expect(toJobCard(rawJob({ title: "Practicante de Análisis de Datos" })).level).toBe("práctica");
   });
 });

@@ -95,7 +95,7 @@ export async function runSearch(opts: SearchOpts): Promise<number> {
           .map(
             (c) =>
               `${c.title}\n  ${c.company || "—"} · ${c.location || "—"} · ${c.date || "—"}` +
-              ` · ${c.modality ?? "modalidad no indicada"}` +
+              ` · ${c.modality} · ${c.level}` +
               `\n  id: ${c.id}\n  ${c.url}`,
           )
           .join("\n\n") + "\n",
@@ -122,12 +122,13 @@ function renderTable(cards: JobCard[]): string {
     const title = (c.title || "").slice(0, 42).padEnd(42)
     const company = (c.company || "—").slice(0, 24).padEnd(24)
     const loc = (c.location || "—").slice(0, 24).padEnd(24)
-    const mode = (c.modality || "—").padEnd(10)
+    const mode = c.modality.padEnd(12)
+    const level = c.level.slice(0, 24).padEnd(24)
     const date = c.date || "—"
-    return `${c.id.padEnd(12)} ${title} ${company} ${loc} ${mode} ${date}`
+    return `${c.id.padEnd(12)} ${title} ${company} ${loc} ${mode} ${level} ${date}`
   })
   const header =
     "ID".padEnd(12) + " " + "TITLE".padEnd(42) + " " + "COMPANY".padEnd(24) + " " + "LOCATION".padEnd(24) + " " +
-    "MODALIDAD".padEnd(10) + " DATE"
+    "MODALIDAD".padEnd(12) + " " + "NIVEL".padEnd(24) + " DATE"
   return [header, "-".repeat(header.length), ...rows].join("\n")
 }

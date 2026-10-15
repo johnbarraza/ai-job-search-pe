@@ -10,6 +10,8 @@
 // work mode, posting age, seniority) using the `{id, value: <idSemantico>}` filtro shape,
 // which the Argentine investigation had not cracked.
 
+import { classifyLevel, normalizeModality, type Level, type Modality } from "./peru.js"
+
 export const BASE_URL = "https://www.bumeran.com.pe"
 const SITE_ID = "BMPE"
 
@@ -84,21 +86,14 @@ export interface JobCard {
   date: string | null
   url: string
   workMode: string | null
-  /** Normalized work mode shared by every Peru portal CLI: "presencial" | "híbrido" | "remoto". */
+  /** Work mode in the shared Peru vocabulary (src/peru.ts), from modalidadTrabajo. */
   modality: Modality
+  /** Position level in the shared Peru vocabulary (src/peru.ts): title first, then nivelLaboral. */
+  level: Level
   employmentType: string | null
 }
 
-export type Modality = "presencial" | "híbrido" | "remoto" | null
-
-/** Bumeran's modalidadTrabajo ("Presencial", "Híbrido", "Remoto") in the shared vocabulary. */
-export function normalizeModality(workMode: string | null | undefined): Modality {
-  const low = (workMode || "").toLowerCase()
-  if (/h[ií]brid/.test(low)) return "híbrido"
-  if (/remot/.test(low)) return "remoto"
-  if (/presencial/.test(low)) return "presencial"
-  return null
-}
+export { normalizeModality }
 
 export interface JobDetail extends JobCard {
   description: string | null
@@ -361,6 +356,7 @@ export function mapSearchItem(item: RawSearchItem): JobCard {
     url: buildResultUrl(id, item.titulo, item.confidencial ? null : company),
     workMode: item.modalidadTrabajo || null,
     modality: normalizeModality(item.modalidadTrabajo),
+    level: classifyLevel(item.titulo),
     employmentType: item.tipoTrabajo || null,
   }
 }
@@ -396,6 +392,7 @@ export function mapAvisoDetail(aviso: RawAvisoDetail): JobDetail {
     url: aviso.seoFriendlyUrl ? `${BASE_URL}${aviso.seoFriendlyUrl}` : buildResultUrl(id, aviso.titulo, company),
     workMode: aviso.modalidadTrabajo?.nombre || null,
     modality: normalizeModality(aviso.modalidadTrabajo?.nombre),
+    level: classifyLevel(aviso.titulo, aviso.nivelLaboral?.nombre),
     employmentType: aviso.tipoTrabajo?.nombre || null,
     description: cleanDescriptionHtml(aviso.descripcion),
     seniority: aviso.nivelLaboral?.nombre || null,

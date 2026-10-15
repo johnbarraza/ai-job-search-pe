@@ -29,7 +29,8 @@ This repo is a job application workspace. Claude acts as a career advisor and ap
   04-job-evaluation.md's Language Gate. -->
 - **CV language:** [YOUR_CV_LANGUAGE] <!-- English unless your market expects otherwise; /setup asks -->
 - **CV length:** 1 page <!-- Peru fork default: one page (the norm for Peruvian recruiters, and for prácticas and junior roles). Change to "2 pages" only when the candidate asks. /apply's page check reads this line. -->
-- **Work mode preference:** [YOUR_WORK_MODE_PREFERENCE] <!-- presencial / híbrido / remoto, and how many on-site days you accept, e.g. "híbrido o remoto; presencial solo en San Isidro o Miraflores". Scored in the Location dimension of 04-job-evaluation.md. -->
+- **Target level:** [YOUR_TARGET_LEVEL] <!-- the position levels you apply for, in the shared vocabulary (10-peru-market.md, "Nivel del puesto"): práctica preprofesional, práctica profesional, pasantía, programa de extensión, trainee, asistente de investigación, asistente, analista, asociado, junior... e.g. "práctica preprofesional o profesional; programas de extensión; analista junior". Scored in Experience Match (04-job-evaluation.md). -->
+- **Work mode preference:** [YOUR_WORK_MODE_PREFERENCE] <!-- presencial / híbrido / remoto (postings that do not say are "no declarado"), and how many on-site days you accept, e.g. "híbrido o remoto; presencial solo en San Isidro o Miraflores". Scored in the Location dimension of 04-job-evaluation.md. -->
 
 - **Status:** [YOUR_EMPLOYMENT_STATUS]
 - **LinkedIn headline:** "[YOUR_LINKEDIN_HEADLINE]"

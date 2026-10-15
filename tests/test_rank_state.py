@@ -76,7 +76,7 @@ class Candidates(RankStateCase):
         self.assertEqual([row["key"] for row in out["selected"]], ["a"])
         self.assertEqual(
             set(out["selected"][0]),
-            {"key", "title", "company", "url", "portal", "location", "modality", "deadline", "posted_date"},
+            {"key", "title", "company", "url", "portal", "location", "modality", "level", "deadline", "posted_date"},
             "the projection is the point: strengths/gaps and every other stored field "
             "stay on disk rather than entering the conversation",
         )
@@ -610,6 +610,18 @@ class Modality(RankStateCase):
             [{"key": "a", "status": "scored", "scores": self.SCORES, "modality": "Hybrid"}]))
         self.assertEqual(self.read_state()["a"]["modality"], "híbrido")
         self.assertEqual(out["ranked"][0]["modality"], "híbrido")
+
+    def test_level_is_stored_and_no_declarado_never_erases_a_known_value(self):
+        self.write_state({"a": entry(modality="híbrido", level="analista"), "b": entry(url="https://example.com/b")})
+        out = self.run_tool("apply", "--results", self.results([
+            {"key": "a", "status": "scored", "scores": self.SCORES, "modality": "no declarado", "level": "no declarado"},
+            {"key": "b", "status": "scored", "scores": self.SCORES, "modality": "no declarado", "level": "práctica preprofesional"},
+        ]))
+        state = self.read_state()
+        self.assertEqual((state["a"]["modality"], state["a"]["level"]), ("híbrido", "analista"))
+        self.assertEqual((state["b"]["modality"], state["b"]["level"]), ("no declarado", "práctica preprofesional"))
+        levels = {r["key"]: r["level"] for r in out["ranked"]}
+        self.assertEqual(levels, {"a": "analista", "b": "práctica preprofesional"})
 
     def test_unknown_or_invalid_modality_does_not_erase_a_stored_one(self):
         self.write_state({"a": entry(modality="presencial"), "b": entry(url="https://example.com/b", modality="remoto")})

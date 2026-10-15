@@ -62,12 +62,13 @@ function renderTable(cards: JobCard[]): string {
     const title = (c.title || "").slice(0, 40).padEnd(40)
     const company = (c.company || "—").slice(0, 24).padEnd(24)
     const loc = (c.location || "—").slice(0, 22).padEnd(22)
-    const mode = (c.modality || "—").padEnd(10)
+    const mode = c.modality.padEnd(12)
+    const level = c.level.slice(0, 24).padEnd(24)
     const date = c.date || "—"
-    return `${c.id.slice(0, 32).padEnd(32)} ${title} ${company} ${loc} ${mode} ${date}`
+    return `${c.id.slice(0, 32).padEnd(32)} ${title} ${company} ${loc} ${mode} ${level} ${date}`
   })
   const header =
-    "ID".padEnd(32) + " " + "TITLE".padEnd(40) + " " + "COMPANY".padEnd(24) + " " + "LOCATION".padEnd(22) + " " + "MODALIDAD".padEnd(10) + " DATE"
+    "ID".padEnd(32) + " " + "TITLE".padEnd(40) + " " + "COMPANY".padEnd(24) + " " + "LOCATION".padEnd(22) + " " + "MODALIDAD".padEnd(12) + " " + "NIVEL".padEnd(24) + " DATE"
   return [header, "-".repeat(header.length), ...rows].join("\n")
 }
 
@@ -101,7 +102,7 @@ export async function runSearch(opts: SearchOpts): Promise<number> {
           .map(
             (c) =>
               `${c.title}\n  ${c.company || "—"} · ${c.location || "—"} · ${c.date || "—"}` +
-              `\n  ${[c.modality ?? "modalidad no indicada", c.salary].filter(Boolean).join(" · ")}` +
+              `\n  ${[c.modality, c.level, c.salary].filter(Boolean).join(" · ")}` +
               `\n  id: ${c.id}\n  ${c.url}`,
           )
           .join("\n\n") + "\n",

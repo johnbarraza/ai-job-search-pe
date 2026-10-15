@@ -1,0 +1,253 @@
+{
+  "about": "Programas de extensión universitaria (PEU), cursos de extensión y programas de especialización de entidades públicas peruanas. Son becas de formación (normalmente enero-marzo) que suelen abrir la puerta a prácticas o empleo en la entidad. Fechas verificadas contra fuentes oficiales o prensa en la fecha 'verified_on'; 'status' = abierta | por_confirmar | cerrada. Una fecha 'por_confirmar' NO se presenta como hecho: se verifica en 'url' antes de decirla. Actualiza este archivo cuando verifiques una convocatoria nueva.",
+  "programs": [
+    {
+      "id": "bcrp-cursos-extension",
+      "institution": "BCRP",
+      "program": "Cursos de Extensión de Economía Avanzada y de Finanzas Avanzadas (verano 2027)",
+      "url": "https://www.bcrp.gob.pe/cursosbcrp",
+      "careers": [
+        "Economía",
+        "Finanzas",
+        "Administración",
+        "Ingeniería Industrial",
+        "Ingeniería de Sistemas",
+        "afines (Finanzas Avanzadas)"
+      ],
+      "eligibility": "8.º a 10.º ciclo o egresado en los últimos dos años; inglés avanzado (las clases y evaluaciones son en inglés); promedio ponderado de los últimos 3 ciclos.",
+      "modality": "no declarado",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": null,
+      "inscription_close": null,
+      "exam": null,
+      "classes": "enero-marzo 2027 (patrón habitual)",
+      "vacancies": null,
+      "status": "por_confirmar",
+      "notes": "Otra fuente indica cierre el 2026-10-20 (inscripciones desde el 2026-09-21), pero la web oficial no lo confirmó al verificar (bot-check en bcrp.gob.pe; el catálogo de cursos muestra la edición 2023). Edición 2025: inscripciones del 2025-09-29 al 2025-11-12, examen el 2025-11-16. Contacto: cursos.bcrp@bcrp.gob.pe.",
+      "sources": [
+        "https://www.bcrp.gob.pe/proyeccion-institucional.html?view=article&id=3357%3Acurso-de-finanzas-avanzadas-2026&catid=44",
+        "https://www.infobae.com/peru/2026/04/23/cursos-del-bcrp-como-acceder-requisitos-y-quienes-pueden-estudiar-en-la-institucion-que-dirige-julio-velarde/",
+        "https://catalogomucen.bcrp.gob.pe/cursos_extension/landing/index/cextension"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "proinversion-peu",
+      "institution": "ProInversión",
+      "program": "Programa de Extensión Universitaria (PEU) 2027",
+      "url": "https://www.investinperu.pe/peu-2027/",
+      "careers": [
+        "Economía o Ingeniería Económica (15 vacantes)",
+        "Derecho (12)",
+        "Ingeniería Civil (6)",
+        "otras"
+      ],
+      "eligibility": "Cursar alguno de los tres últimos ciclos o haber egresado en 2026.",
+      "modality": "remoto",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": "2026-09-10",
+      "inscription_close": "2026-10-30",
+      "exam": null,
+      "classes": "inicio 2027-01-04; 120 horas en 4 módulos (con ENAP)",
+      "vacancies": 45,
+      "status": "abierta",
+      "notes": "Selección y programa no presenciales, salvo actividades presenciales que se anuncian. Lista de inscritos aptos: 2026-11-05; lista de 45 becarios: 2026-11-27. Pruebas psicotécnica y psicológica y entrevista según cronograma del proceso.",
+      "sources": [
+        "https://www.investinperu.pe/peu-2027/",
+        "https://siga.proinversion.gob.pe/FichaPEU/Manual/BASES%20PEU%202027.pdf"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "osiptel-peu",
+      "institution": "OSIPTEL",
+      "program": "XXXI Programa de Extensión Universitaria (PEU) 2027 - regulación de telecomunicaciones y gestión pública",
+      "url": "https://www.osiptel.gob.pe/portal-del-usuario/noticias/especializate-en-regulacion-de-telecomunicaciones-osiptel-lanza-60-becas-integrales-para-estudiantes-de-economia-derecho-e-ingenieria/",
+      "careers": [
+        "Economía (20)",
+        "Derecho (20)",
+        "Ingeniería (20): Económica, Telecomunicaciones, Electrónica, Sistemas, Informática, Software, Industrial y afines"
+      ],
+      "eligibility": "Último año de pregrado, egresados o bachilleres sin título profesional. 30 de las 60 becas son para universidades fuera de Lima y Callao.",
+      "modality": "presencial",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": null,
+      "inscription_close": "2026-10-31",
+      "exam": null,
+      "classes": "2027-01-11 a 2027-03-19, presencial en Lima",
+      "vacancies": 60,
+      "status": "abierta",
+      "notes": "Selección solo por examen virtual (conocimientos y razonamiento lógico-analítico). Otra fuente indica examen el 2026-11-08: no confirmado. Cubre costos académicos, alimentación, movilidad local y seguro de accidentes.",
+      "sources": [
+        "https://www.osiptel.gob.pe/portal-del-usuario/noticias/especializate-en-regulacion-de-telecomunicaciones-osiptel-lanza-60-becas-integrales-para-estudiantes-de-economia-derecho-e-ingenieria/",
+        "https://elperuano.pe/noticia/305803-buscas-una-beca-osiptel-ofrece-60-vacantes-para-especializarse-en-telecomunicaciones-y-gestion-publica",
+        "https://www.infobae.com/peru/2026/10/01/osiptel-ofrece-60-becas-integrales-para-jovenes-que-cumplan-estos-requisitos-conoce-como-postular-al-programa/"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "smv-pemv",
+      "institution": "SMV",
+      "program": "XXVIII Programa de Especialización en Mercado de Valores (PEMV)",
+      "url": "https://www.gob.pe/84211-inscribase-al-programa-de-especializacion-en-mercado-de-valores",
+      "careers": [
+        "Ver bases (estudiantes y egresados universitarios)"
+      ],
+      "eligibility": "Tercio superior (constancia de algún ciclo o año); estudiantes con al menos 80% de créditos aprobados o egresados con no más de dos años al inicio del programa; inglés intermedio como mínimo.",
+      "modality": "presencial",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": "2026-09-21",
+      "inscription_close": "2026-11-01",
+      "exam": null,
+      "classes": "inicio 2027-01-11, presencial enero-marzo 2027 (dictado por una universidad de Lima)",
+      "vacancies": 28,
+      "status": "abierta",
+      "notes": "32 vacantes en total: 28 para estudiantes y egresados por orden de mérito en la Prueba General de Aptitud y Conocimientos; 4 para trabajadores de la SMV o instituciones vinculadas.",
+      "sources": [
+        "https://www.gob.pe/84211-inscribase-al-programa-de-especializacion-en-mercado-de-valores",
+        "https://borsista.com/smv-inicia-la-convocatoria-para-su-xxviii-programa-de-especializacion-en-mercado-de-valores/",
+        "https://www.formate.pe/informacion-programa-especializacion-mercado-valores-pemv-convocatoria-smv-11360.html"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "sunass-peu",
+      "institution": "SUNASS",
+      "program": "Programa de Extensión Universitaria (PEU) 2027",
+      "url": "https://www.gob.pe/institucion/sunass/campa%C3%B1as/145212-programa-de-extension-universitaria-2027",
+      "careers": [
+        "Economía",
+        "Derecho",
+        "Ingeniería Sanitaria"
+      ],
+      "eligibility": "Últimos tres ciclos o recién egresados; disponibilidad exclusiva durante las siete semanas; no haber sido becario en una edición anterior.",
+      "modality": "remoto",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": "2026-09-21",
+      "inscription_close": "2026-11-15",
+      "exam": "2026-11-22",
+      "classes": "2027-01-18 a 2027-03-05, 100% virtual",
+      "vacancies": 90,
+      "status": "abierta",
+      "notes": "Gratuito, más de 150 horas académicas; opción a prácticas y bolsa de trabajo de la Sunass. Un sitio de terceros indica cierre el 2026-11-19: manda la página de gob.pe.",
+      "sources": [
+        "https://www.gob.pe/institucion/sunass/campa%C3%B1as/145212-programa-de-extension-universitaria-2027",
+        "https://www.infobae.com/peru/2026/09/25/sunass-lanza-90-becas-para-estudiantes-y-egresados-con-opcion-a-practicas-profesionales-y-acceso-a-su-bolsa-de-trabajo-conoce-como-postular/"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "osinergmin-peu",
+      "institution": "OSINERGMIN",
+      "program": "XXV Programa de Extensión Universitaria (PEU) 2027 - regulación y supervisión de la industria energética y minera",
+      "url": "https://becas.osinergmin.gob.pe/",
+      "careers": [
+        "Economía (especialidad Economía de la Energía y Minería)",
+        "otras seis especialidades (ver bases)"
+      ],
+      "eligibility": "Egresado universitario del año 2026 o haber terminado el último ciclo académico en 2026; egresados o bachilleres no titulados.",
+      "modality": "remoto",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": "2026-10-01",
+      "inscription_close": "2026-11-30",
+      "exam": null,
+      "classes": "2027-01-14 a 2027-03-15, 100% virtual",
+      "vacancies": 270,
+      "status": "abierta",
+      "notes": "Mitad de vacantes para Lima Metropolitana y Callao, mitad para regiones. Inscripción hasta las 23:59 en becas.osinergmin.gob.pe. Otra fuente indica examen el 12 y 13 de diciembre de 2026 y aceptación de quienes obtengan la constancia de egreso hasta enero de 2027: no confirmado en lo verificado; revisar el cronograma y las bases del portal.",
+      "sources": [
+        "https://becas.osinergmin.gob.pe/requisitos-e-inscripcion/",
+        "https://www.gob.pe/institucion/osinergmin/noticias/857794-osinergmin-lanzo-la-convocatoria-para-el-programa-de-extension-universitaria-en-la-universidad-nacional-de-ingenieria"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "ositran-ceu",
+      "institution": "OSITRAN",
+      "program": "Curso de Extensión Universitaria (CEU) 2027 - regulación de infraestructura de transporte",
+      "url": "https://www.ositran.gob.pe/",
+      "careers": [
+        "Economía",
+        "Ingeniería Económica",
+        "Derecho",
+        "Ingeniería Civil",
+        "Ingeniería de Transportes"
+      ],
+      "eligibility": "Últimos tres ciclos o egresados recientes (según bases de cada año).",
+      "modality": "híbrido",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": null,
+      "inscription_close": null,
+      "exam": null,
+      "classes": "patrón: enero-febrero, semipresencial (virtual y luego presencial en Lima)",
+      "vacancies": 45,
+      "status": "por_confirmar",
+      "notes": "Otra fuente indica que las inscripciones 2027 cerraron el 2026-10-11 y que el examen es el 2026-11-21: no confirmado. Edición 2026 (XXIII): examen el 2025-11-22, inscripción ampliada hasta el 2025-10-19.",
+      "sources": [
+        "https://www.ositran.gob.pe/anterior/wp-content/uploads/2025/08/bases-ceu-xxiii-2026.pdf",
+        "https://cdn.www.gob.pe/uploads/document/file/9084080/7458993-resultados-de-admitidos-ceu-2026.pdf"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "sbs-peu",
+      "institution": "SBS",
+      "program": "Programa de Extensión Universitaria - supervisión financiera, finanzas y riesgos",
+      "url": "https://www.sbs.gob.pe/",
+      "careers": [
+        "Economía",
+        "carreras afines (ver bases)"
+      ],
+      "eligibility": "Último ciclo o egresados; tercio superior; exámenes de conocimientos e inglés, pruebas psicolaborales y entrevistas.",
+      "modality": "no declarado",
+      "level": "programa de extensión",
+      "edition": 2026,
+      "inscription_open": null,
+      "inscription_close": "2026-09-01",
+      "exam": null,
+      "classes": "unas 12 semanas",
+      "vacancies": null,
+      "status": "cerrada",
+      "notes": "La web de la SBS anunció cierre de inscripciones el 1 de setiembre (2026). Beca integral, seguro de accidentes y apoyo de manutención y transporte. Siguiente convocatoria esperada a mediados de 2027.",
+      "sources": [
+        "https://gestion.pe/peru/convocatoria-a-estudiantes-universitarios-para-programa-de-especializacion-en-supervision-financiera-como-postular-noticia/",
+        "https://www.udep.edu.pe/hoy/2025/05/egresada-de-economia-ingresa-a-la-sbs-tras-cursar-un-programa-de-extension/"
+      ],
+      "verified_on": "2026-10-15"
+    },
+    {
+      "id": "indecopi-peu",
+      "institution": "INDECOPI",
+      "program": "Programa de Extensión Universitaria (PEU) - competencia, protección al consumidor y propiedad intelectual",
+      "url": "https://www.gob.pe/indecopi",
+      "careers": [
+        "Economía",
+        "Derecho",
+        "Administración",
+        "Ingeniería"
+      ],
+      "eligibility": "Últimos ciclos y egresados recientes (según bases de cada edición).",
+      "modality": "no declarado",
+      "level": "programa de extensión",
+      "edition": 2027,
+      "inscription_open": null,
+      "inscription_close": null,
+      "exam": null,
+      "classes": null,
+      "vacancies": null,
+      "status": "por_confirmar",
+      "notes": "Convocatoria 2027 no publicada al verificar. Edición 2025: inscripciones hasta el 17 de noviembre (60 vacantes). Otra fuente indica que la edición 2026 inscribió del 2025-10-30 al 2025-11-14. Contacto: escuela@indecopi.gob.pe.",
+      "sources": [
+        "https://www.udep.edu.pe/hoy/2025/04/alumnos-de-la-udep-obtienen-los-primeros-puestos-en-un-programa-del-indecopi/"
+      ],
+      "verified_on": "2026-10-15"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 ---
-framework_version: 1.2.8
+framework_version: 1.2.9
 ---
 
 # Job Evaluation Framework
@@ -78,6 +78,18 @@ Does work history align with what they're looking for? Match on the function and
 **Moderate:** [YOUR_ADJACENT_EXPERIENCE]
 **Entry-level:** [ROLES_WITH_LIMITED_EXPERIENCE]
 
+**Level fit (Peru fork).** Establish the posting's level in the shared vocabulary (the
+portal's `level` field, else the title and the experience requirement, else `no declarado`):
+práctica preprofesional, práctica profesional, práctica, pasantía, programa de extensión,
+trainee, asistente de investigación, asistente, analista, asociado, junior, semi senior,
+senior, jefatura. Compare it with the candidate's `Target level` in CLAUDE.md. A level above
+the target (senior or jefatura for a student; "3 años de experiencia" for a recent graduate)
+caps Experience Match at 39 whatever the domain overlap; a level below it (asistente for a
+candidate targeting analista) is noted, not capped. For prácticas, check the convenio type
+against the candidate's status: preprofesional needs current enrolment (and often a cycle
+range, "desde 6.º ciclo"), profesional needs the egresado status. Name the level in the
+Experience Match note.
+
 ### 3. Behavioral/Culture Fit (0-100)
 Does the role and company culture match the behavioral profile?
 
@@ -96,7 +108,7 @@ Does the role and company culture match the behavioral profile?
 the on-site days per week when stated) or `remoto`, in this order of evidence: the portal's
 normalized `modality` field (every Peru portal CLI emits it; LinkedIn only when the search
 used `--remote`), then the posting text ("modalidad híbrida", "3 días en oficina", "100%
-remoto", "presencial en San Isidro"), else **"no indicada"**. Never guess it from the
+remoto", "presencial en San Isidro"), else **"no declarado"**. Never guess it from the
 company or the role type. Then compare it with the candidate's `Work mode preference` in
 CLAUDE.md:
 
@@ -105,7 +117,7 @@ CLAUDE.md:
 - Work mode the candidate excludes (e.g. presencial when the preference says "solo remoto o
   híbrido"), or on-site days in a district the preference rules out: FAIL when the
   preference states it as a requirement, otherwise FLAG
-- Work mode "no indicada": FLAG, and list "confirmar modalidad y días presenciales" among
+- Work mode "no declarado": FLAG, and list "confirmar modalidad y días presenciales" among
   the questions for the recruiter
 - Requires relocation: FAIL (deal-breaker)
 - Frequent international travel: FLAG (discuss with user)

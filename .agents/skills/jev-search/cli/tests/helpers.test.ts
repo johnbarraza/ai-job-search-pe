@@ -92,6 +92,8 @@ describe("answer parsing", () => {
     expect(a.modality).toBe("presencial");
     expect(a.id).toBe("talentoperu:CAS 012-2026");
     expect(b.modality).toBe("híbrido");
+    expect(a.level).toBe("práctica");
+    expect(b.level).toBe("analista");
     expect(b.url).toBe("https://app.servir.gob.pe/empleo/123");
     expect(b.id).toBe("https://app.servir.gob.pe/empleo/123");
   });
@@ -127,7 +129,7 @@ describe("answer parsing", () => {
     expect(normalizeModality("Presencial y remoto")).toBe("híbrido");
     expect(normalizeModality("Teletrabajo")).toBe("remoto");
     expect(normalizeModality("on-site")).toBe("presencial");
-    expect(normalizeModality(null)).toBeNull();
+    expect(normalizeModality(null)).toBe("no declarado");
   });
 });
 

@@ -13,6 +13,8 @@
 // getonbrd.com's server-rendered pages) that predated discovering this API. See
 // ../url-reference.md for the full investigation and the specific quirks below.
 
+import { classifyLevel, type Level, type Modality } from "./peru.js"
+
 export const API_BASE = "https://www.getonbrd.com/api/v0"
 export const SITE_BASE = "https://www.getonbrd.com"
 
@@ -117,8 +119,10 @@ export interface JobCard {
   location: string | null
   date: string | null
   url: string
-  /** Normalized work mode shared by every Peru portal CLI: "presencial" | "híbrido" | "remoto". */
+  /** Work mode in the shared Peru vocabulary (src/peru.ts), from remote_modality. */
   modality: Modality
+  /** Position level in the shared Peru vocabulary (src/peru.ts): title first, then seniority. */
+  level: Level
 }
 
 export interface JobDetail extends JobCard {
@@ -212,7 +216,6 @@ function attrText(ref: ExpandedRef | undefined, field: string): string | null {
  * confirmed live to work - see url-reference.md) and needs the company slug
  * up front to do that, not just the job's own slug.
  */
-export type Modality = "presencial" | "híbrido" | "remoto" | null
 
 /**
  * GetOnBoard's remote_modality in the shared vocabulary of the Peru portal CLIs.
@@ -232,7 +235,7 @@ export function normalizeModality(remoteModality: string | null | undefined): Mo
     case "no_remote":
       return "presencial"
     default:
-      return null
+      return "no declarado"
   }
 }
 
@@ -248,6 +251,7 @@ export function toJobCard(raw: RawJob): JobCard {
     date: isoFromEpochSeconds(raw.attributes.published_at),
     url: `${SITE_BASE}/jobs/${raw.id}`,
     modality: normalizeModality(raw.attributes.remote_modality),
+    level: classifyLevel(raw.attributes.title, attrText(raw.attributes.seniority, "name")),
   }
 }
 

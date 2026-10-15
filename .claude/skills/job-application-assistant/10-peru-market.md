@@ -1,5 +1,5 @@
 ---
-framework_version: 1.1.1
+framework_version: 1.2.1
 ---
 
 # Mercado laboral peruano (fork Perú)
@@ -174,17 +174,39 @@ Verificado contra el resumen de la Red Alumni UP de la Ley 28518:
 ## 7. Modalidad: presencial, híbrida o remota
 
 Cada CLI de portal peruano devuelve un campo `modality` normalizado (`presencial`,
-`híbrido`, `remoto` o `null`). En Computrabajo, una oferta sin etiqueta de modalidad es
+`híbrido`, `remoto` o `no declarado`). En Computrabajo, una oferta sin etiqueta de modalidad es
 presencial (el sitio solo etiqueta remotas e híbridas); en LinkedIn la modalidad solo se
 conoce si la búsqueda usó `--remote`. `/scrape`, `/rank` y `/apply` la comparan con la línea
 `Work mode preference` del perfil (`04-job-evaluation.md`, sección 4):
 
 - Una modalidad que el candidato descarta baja el fit o lo veta, según cómo esté escrita la
   preferencia.
-- "No indicada" no se adivina: queda como FLAG y como pregunta para el reclutador
+- "No declarado" no se adivina: queda como FLAG y como pregunta para el reclutador
   ("¿cuántos días presenciales y en qué sede?").
 - En prácticas, la modalidad y el horario (turno mañana/tarde, 6 horas) deben calzar con el
   horario de clases: anótalo en la evaluación.
+
+### Nivel del puesto
+
+Cada resultado trae también `level`, clasificado desde el título (y, si el título no dice
+nada, desde la etiqueta de experiencia del portal):
+
+| Nivel | Señales en el título | Para quién |
+|---|---|---|
+| práctica preprofesional | "practicante preprofesional", "prácticas pre profesionales" | estudiante (a menudo "desde 6.º ciclo") |
+| práctica profesional | "practicante profesional", "prácticas profesionales" | egresado |
+| práctica | "practicante", "intern", "summer intern" (sin decir cuál) | revisar requisitos |
+| pasantía | "pasante", "pasantía" | estudiante o egresado |
+| programa de extensión | "programa de extensión", "PEU", "curso de extensión", "programa de especialización" | últimos ciclos / egresados (ver sección 9) |
+| trainee | "trainee", "programa de talento", "jóvenes profesionales" | recién egresado |
+| asistente de investigación | "asistente de investigación", "research assistant" | estudiante o egresado |
+| asistente / analista / asociado | "asistente", "auxiliar" / "analista" / "asociado", "associate" | junior según requisitos |
+| junior, semi senior, senior | "junior", "jr" / "semi senior", "ssr" / "senior", "sr" | por experiencia |
+| jefatura | "jefe", "gerente", "coordinador", "supervisor", "lead", "manager" | experimentado |
+
+Un título con señal de seniority manda sobre el rol: "Analista Senior" es `senior`, no
+`analista`. `/scrape`, `/rank` y `/apply` comparan el nivel con la línea `Target level` del
+perfil (`04-job-evaluation.md`, sección 2).
 
 ## 8. Lima: ubicación y traslado
 
@@ -199,6 +221,33 @@ El tiempo de traslado en Lima pesa más que la distancia. Para el criterio de ub
   `bumeran-search -l "SJL"`.
 - Para ofertas híbridas, el número de días presenciales cambia mucho el costo real del
   traslado: si la oferta no lo dice, es una pregunta para la entrevista.
+
+## 9. Programas de extensión universitaria y cursos de extensión
+
+Los reguladores y otras entidades públicas (OSINERGMIN, OSIPTEL, SUNASS, OSITRAN, INDECOPI,
+SBS, ProInversión, SMV) y el BCRP ofrecen cada año programas de extensión (PEU), cursos de
+extensión o programas de especialización: becas integrales de formación, normalmente de
+enero a marzo, con examen de admisión. Los mejores puestos suelen recibir prácticas o
+entrevistas en la entidad, así que para un estudiante de últimos ciclos o un recién egresado
+de Economía, Derecho o Ingeniería son una de las vías de entrada más directas al sector
+público y regulatorio.
+
+- **Calendario típico:** inscripciones entre septiembre y noviembre, examen en noviembre o
+  diciembre, clases de enero a marzo. Las ventanas no se mueven por la búsqueda de empleo:
+  hay que vigilarlas aparte.
+- **Requisitos frecuentes:** últimos tres ciclos o egresado del año (OSINERGMIN pide egresar en
+  2026 para la edición 2027), **tercio superior** (SMV, SBS), inglés (BCRP avanzado, SMV
+  intermedio) y disponibilidad exclusiva durante el programa.
+- **Registro verificado:** `data/peru/programas_extension.json` guarda cada programa con su
+  fuente, su estado (`abierta`, `por_confirmar`, `cerrada`) y la fecha de verificación.
+  `python tools/pe_programas.py` lista los abiertos por cercanía del cierre (🔥 a 7 días o
+  menos) y marca para re-verificar lo que tenga más de 21 días. `/scrape` los muestra en su
+  propia tabla (Paso 1d).
+- **Fechas sin confirmar no se presentan como hechos.** Si una convocatoria solo aparece en
+  una fuente secundaria, queda `por_confirmar` hasta verla en la página oficial.
+- **Postulación:** cada programa tiene su formulario y documentos (constancia de tercio
+  superior, constancia de egreso o de matrícula, a veces carta de presentación o CV). `/apply`
+  puede preparar el CV de una página y la carta si las bases los piden.
 
 ## Fuentes (consultadas 2026-10-15)
 
@@ -216,3 +265,4 @@ El tiempo de traslado en Lima pesa más que la distancia. Para el criterio de ub
 - Talento Perú / SERVIR: [LP Derecho](https://lpderecho.pe/portal-publicara-ofertas-empleos-practicas-instituciones-publicas)
 - REMYPE: [LP Derecho, régimen REMYPE laboral](https://lpderecho.pe/regimen-remype-laboral)
 - Sueldos por empresa: [MyWorkIn](https://www.myworkin.ai/salaries)
+- Programas de extensión: fuentes por programa en `data/peru/programas_extension.json` (campo `sources`).

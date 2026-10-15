@@ -8,7 +8,7 @@ import {
   daysSince,
   parseTotalResults,
   resolveLocationSlug,
-  normalizeModality,
+  modalityFromChip,
 } from "../src/helpers";
 
 // Search-card markup modeled on real cards captured live from
@@ -567,16 +567,16 @@ describe("resolveLocationSlug", () => {
   });
 });
 
-describe("normalizeModality", () => {
+describe("modalityFromChip", () => {
   test("hybrid and remote chips map to the shared vocabulary", () => {
-    expect(normalizeModality("Presencial y remoto")).toBe("híbrido");
-    expect(normalizeModality("Híbrido")).toBe("híbrido");
-    expect(normalizeModality("Remoto")).toBe("remoto");
-    expect(normalizeModality("Presencial")).toBe("presencial");
+    expect(modalityFromChip("Presencial y remoto")).toBe("híbrido");
+    expect(modalityFromChip("Híbrido")).toBe("híbrido");
+    expect(modalityFromChip("Remoto")).toBe("remoto");
+    expect(modalityFromChip("Presencial")).toBe("presencial");
   });
 
   test("an untagged posting is on-site (Computrabajo tags only remote and hybrid)", () => {
-    expect(normalizeModality(null)).toBe("presencial");
+    expect(modalityFromChip(null)).toBe("presencial");
   });
 
   test("search cards carry the normalized modality", () => {
@@ -585,6 +585,7 @@ describe("normalizeModality", () => {
       <div class="fs13 mt15"><span class="dIB mr10"><span class="icon i_home"></span>Remoto</span></div>
       <p class="fs13 fc_aux mt15">Hoy</p></article>`;
     expect(parseJobCards(html)[0].modality).toBe("remoto");
+    expect(parseJobCards(html)[0].level).toBe("analista");
   });
 });
 
@@ -608,5 +609,6 @@ describe("parseJobDetail: <h2> 'Descripción de la oferta' heading", () => {
     expect(job.contractType).toBe("Contrato por Necesidades del Mercado");
     expect(job.schedule).toBe("Tiempo completo");
     expect(job.modality).toBe("presencial");
+    expect(job.level).toBe("asistente");
   });
 });

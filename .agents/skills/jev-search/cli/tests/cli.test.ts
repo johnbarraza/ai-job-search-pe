@@ -147,7 +147,8 @@ describe("runSearch with a fake runner", () => {
     const [r] = json.results;
     expect(Object.keys(r)).toEqual(expect.arrayContaining(["id", "title", "company", "location", "date", "url", "modality"]));
     expect(r.deadline).toBe("2026-10-28");
-    expect(r.modality).toBeNull();
+    expect(r.modality).toBe("no declarado");
+    expect(r.level).toBe("no declarado");
     const jevCall = calls.find((c) => c.includes("--goal"))!;
     expect(jevCall).toContain("--stop-at-challenge");
   });

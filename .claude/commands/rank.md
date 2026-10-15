@@ -67,7 +67,8 @@ Each agent returns a JSON array, one object per job:
   "status": "scored" | "expired",
   "scores": { "technical": 0-100, "experience": 0-100, "behavioral": 0-100, "career": 0-100 },
   "location_verdict": "PASS" | "FAIL" | "FLAG",
-  "modality": "presencial" | "híbrido" | "remoto" | null,
+  "modality": "presencial" | "híbrido" | "remoto" | "no declarado",
+  "level": "<shared level vocabulary: práctica preprofesional | práctica profesional | práctica | pasantía | programa de extensión | trainee | asistente de investigación | asistente | analista | asociado | junior | semi senior | senior | jefatura | no declarado>",
   "language_gate": "PASS" | "FAIL" | "FLAG",
   "language_note": "<posting requirement + declared level, only when FLAG or FAIL>",
   "deadline": "YYYY-MM-DD" | null,
@@ -77,7 +78,7 @@ Each agent returns a JSON array, one object per job:
 }
 ```
 
-`modality` is the work mode the agent established from the posting per `04-job-evaluation.md` section 4 (portal field first, then the posting text, else `null`); `location_verdict` already reflects how it compares with the candidate's `Work mode preference`. `tools/rank_state.py apply` stores a non-null value on the entry and never overwrites a stored mode with `null`.
+`modality` is the work mode the agent established from the posting per `04-job-evaluation.md` section 4 (portal field first, then the posting text, else `no declarado`); `location_verdict` already reflects how it compares with the candidate's `Work mode preference`. `level` is the position level (portal field first, then the posting's title and experience requirement, else `no declarado`); the `experience` score already reflects how it compares with the candidate's `Target level` (`04-job-evaluation.md` section 2). `tools/rank_state.py apply` stores both and never lets `no declarado` overwrite a known value.
 
 `language_gate`/`language_note` come from `04-job-evaluation.md`'s Language Gate — distinct from `language` above, which just records what language the posting is written in.
 
@@ -132,7 +133,7 @@ python3 tools/rank_state.py apply --results "<path to that temporary file>"
 
 What it writes per entry - all additive to the scraper's schema:
 
-- Ranked jobs: `"status": "ranked"` plus `"rank_score": <overall>`, `"rank_verdict": "<band>"`, `"rank_date": "YYYY-MM-DD"`, `"location_verdict": "PASS"/"FAIL"/"FLAG"` (never the bare `location` key - that is the scraper's place field, e.g. "Aarhus, Denmark", and overwriting it with a verdict destroys the commute-filter data; an entry ranked before this rename may carry a legacy PASS/FAIL/FLAG string in `location`, which the tool reads as the verdict when `location_verdict` is absent and moves to `location_verdict` as it rewrites the entry), `"language_gate": "PASS"/"FAIL"/"FLAG"`, `"language_note"` (dropped when `language_gate` is `PASS`), `"deadline": "YYYY-MM-DD" | null` from the same Step 2 JSON (replacing the stored value when the agent returned a different one - a fresh fetch is the freshest source; left alone when the agent returned `null`, because absence is not a correction - a fetch that degraded to a listing page returns no deadline, and taking that as "the posting dropped its deadline" would erase a real date and, because rule 6 leaves an entry with no stored `deadline` alone, quietly make that job immortal to the sweep), plus `"strengths": [...]` and `"gaps": [...]` copied from the scoring agent's Step 2 JSON for that job, and `"modality"` (the work mode in the shared vocabulary `presencial`/`híbrido`/`remoto`), stored only when the agent returned a valid value, so an unknown mode never erases one the portal reported. These veto fields are as important to persist as the score itself - without them, nothing later (a re-read of `seen_jobs.json`, a debugging session, the user asking "why was this excluded") can recover why a job did or didn't make the shortlist.
+- Ranked jobs: `"status": "ranked"` plus `"rank_score": <overall>`, `"rank_verdict": "<band>"`, `"rank_date": "YYYY-MM-DD"`, `"location_verdict": "PASS"/"FAIL"/"FLAG"` (never the bare `location` key - that is the scraper's place field, e.g. "Aarhus, Denmark", and overwriting it with a verdict destroys the commute-filter data; an entry ranked before this rename may carry a legacy PASS/FAIL/FLAG string in `location`, which the tool reads as the verdict when `location_verdict` is absent and moves to `location_verdict` as it rewrites the entry), `"language_gate": "PASS"/"FAIL"/"FLAG"`, `"language_note"` (dropped when `language_gate` is `PASS`), `"deadline": "YYYY-MM-DD" | null` from the same Step 2 JSON (replacing the stored value when the agent returned a different one - a fresh fetch is the freshest source; left alone when the agent returned `null`, because absence is not a correction - a fetch that degraded to a listing page returns no deadline, and taking that as "the posting dropped its deadline" would erase a real date and, because rule 6 leaves an entry with no stored `deadline` alone, quietly make that job immortal to the sweep), plus `"strengths": [...]` and `"gaps": [...]` copied from the scoring agent's Step 2 JSON for that job, and `"modality"` / `"level"` (shared vocabulary), stored only when the agent returned a valid value; `no declarado` never overwrites a known one, so an unknown never erases what the portal reported. These veto fields are as important to persist as the score itself - without them, nothing later (a re-read of `seen_jobs.json`, a debugging session, the user asking "why was this excluded") can recover why a job did or didn't make the shortlist.
 - Dead or past-deadline jobs: `"status": "expired"`.
 - Entries retired by Step 3's rule 6 sweep: `"status": "expired"` for those too, written by `sweep --write`, with every other field on them untouched. The sweep reasons over entries this run never scored, so without its own write its conclusion would live only in the report and the same expiry would be re-derived from the same stored date on every future run.
 
@@ -155,9 +156,9 @@ Swept <S> previously ranked entries (<E> newly expired, <C> closing soon).
 
 ### Shortlist
 
-| # | Score | Verdict | Title | Company | Location | Modalidad | Deadline | | URL |
-|---|-------|---------|-------|---------|----------|-----------|----------|---|-----|
-| 1 | 78 | Strong Fit | ... | ... | ... | híbrido | ... | 🔥 | [Link](...) |
+| # | Score | Verdict | Title | Company | Location | Modalidad | Nivel | Deadline | | URL |
+|---|-------|---------|-------|---------|----------|-----------|-------|----------|---|-----|
+| 1 | 78 | Strong Fit | ... | ... | ... | híbrido | práctica preprofesional | ... | 🔥 | [Link](...) |
 
 ### Why these ranked highest
 **1. <Title> at <Company> (78)** - [2-3 strength bullets and the honest gap, from the agent's findings]

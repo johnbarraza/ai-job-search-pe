@@ -277,7 +277,7 @@ describe("modality", () => {
     expect(normalizeModality("Presencial")).toBe("presencial");
     expect(normalizeModality("Híbrido")).toBe("híbrido");
     expect(normalizeModality("Remoto")).toBe("remoto");
-    expect(normalizeModality(null)).toBeNull();
+    expect(normalizeModality(null)).toBe("no declarado");
   });
 
   test("search and detail items both carry it", () => {
@@ -286,7 +286,12 @@ describe("modality", () => {
       fechaPublicacion: "15-10-2026", modalidadTrabajo: "Híbrido",
     });
     expect(card.modality).toBe("híbrido");
-    const job = mapAvisoDetail({ id: 2, titulo: "Analista", descripcion: null, modalidadTrabajo: { nombre: "Remoto" } });
+    expect(card.level).toBe("analista");
+    const job = mapAvisoDetail({
+      id: 2, titulo: "Economista", descripcion: null, modalidadTrabajo: { nombre: "Remoto" },
+      nivelLaboral: { nombre: "Trainee / Pasante" },
+    });
     expect(job.modality).toBe("remoto");
+    expect(job.level).toBe("trainee"); // title says nothing, so nivelLaboral decides
   });
 });

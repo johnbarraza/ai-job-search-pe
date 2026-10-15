@@ -59,6 +59,9 @@ ALLOWED_PERMISSIONS = {
     # call, robots.txt-gated, writes only salary_data.json and .cache/).
     "Bash(python tools/pe_sueldo.py:*)",
     "Bash(python3 tools/pe_sueldo.py:*)",
+    # Peru fork: offline lister for data/peru/programas_extension.json.
+    "Bash(python tools/pe_programas.py:*)",
+    "Bash(python3 tools/pe_programas.py:*)",
     "Bash(python tools/myworkin_salaries.py:*)",
     "Bash(python3 tools/myworkin_salaries.py:*)",
     "Bash(python tools/rank_state.py:*)",
