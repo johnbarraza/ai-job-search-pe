@@ -8,6 +8,41 @@ There are three paths into setup. Step 0 picks the right one; all three converge
 
 ## Step 0: Welcome & Choose Path
 
+### Profiles: `--user <nombre>` (Peru fork)
+
+Every command reads one person's data from fixed paths in the folder Claude Code is opened
+in, so each person (or each job-search identity) gets their own workspace, called a
+**profile**: `perfiles/<nombre>/`, a git worktree on the local branch `perfil/<nombre>`.
+It downloads nothing, keeps that person's profile files, CVs, tracker and seen jobs apart
+from everyone else's, and never reaches a remote (`perfiles/` is gitignored and a local
+pre-push hook refuses `perfil/*` branches).
+
+- **No `--user`:** set up the current workspace, exactly as below. This is the default:
+  the person working in this folder.
+- **`--user <nombre>`:** run this first, adding `--cv "<path>"` when the user names a CV
+  file to start from (it is copied into the profile's ignored `documents/cv/`):
+
+  ```bash
+  python tools/perfiles.py crear <nombre>
+  ```
+
+  It creates the profile, or reports it already exists (re-running `/setup --user
+  <nombre>` updates that person's profile). Then **every path this command reads or
+  writes is relative to the profile root printed as `ruta`**: `CLAUDE.md` means
+  `perfiles/<nombre>/CLAUDE.md`, `documents/` means `perfiles/<nombre>/documents/`, the
+  skill files are `perfiles/<nombre>/.claude/skills/...`, `cv/main_example.tex` is
+  `perfiles/<nombre>/cv/main_example.tex`. Never write a profile's data into the repo
+  root while `--user` is set. Remove `--user <nombre>` from `$ARGUMENTS` and continue
+  with the rest of this command (so `/setup --user ana --section search` runs only the
+  search section for Ana). Skip the public-fork warning below; say instead: "Perfil
+  `<nombre>`: tus datos quedan en la rama local `perfil/<nombre>`, que nunca se sube (un
+  hook local bloquea el push)."
+- **Several areas for one person** (finanzas, regulación, sector público) do not need
+  profiles: they are priority categories in that person's `search-queries.md`, focused
+  with `/scrape <área>`, and `/apply` tailors each CV to its posting.
+- `python tools/perfiles.py lista` lists the profiles; `actualizar <nombre> --guardar`
+  brings framework updates from `master` into one; `borrar <nombre> --si` removes one.
+
 If `$ARGUMENTS` contains `--section <name>`, skip directly to that section in Path C for an update-only flow. Do not run the path-selection prompt below.
 
 Otherwise, first check where this working copy would publish to — **before anything is
@@ -426,6 +461,21 @@ Present a summary:
 > - Run `/apply` with a job posting URL to see the full application workflow
 > - Run `/setup --section search` later to update your search queries as your priorities evolve
 
+With `--user <nombre>`, replace the privacy note and "Try it out" above with:
+
+> **Perfil `<nombre>` listo** en `perfiles/<nombre>/` (rama local `perfil/<nombre>`, que
+> nunca se sube). Para usarlo, abre Claude Code **dentro de esa carpeta**: Claude carga
+> los archivos del perfil desde la carpeta donde se abre, y una sesión en la raíz solo ve
+> la plantilla.
+>
+> ```bash
+> cd perfiles/<nombre>
+> claude
+> ```
+>
+> Ahí corre `/scrape`, `/rank`, `/apply` y `/interview` como siempre. Para traer mejoras
+> futuras del framework: `python tools/perfiles.py actualizar <nombre> --guardar`.
+
 If Path A left any STAR stubs in `07-interview-prep.md`, also note:
 
 > Path A flagged [N] STAR candidate stubs in `07-interview-prep.md` that need your situation/task/action/result details before you use them in interviews.
@@ -439,6 +489,7 @@ If Path A left any STAR stubs in `07-interview-prep.md`, also note:
 - Path A labels inferred behavioral or style additions so the user can review them critically before relying on them.
 - Each section in Path C is a natural conversation, not a form. The user can skip optional sections.
 - Synthesize answers into structured formats (the user does not need to know markdown or LaTeX).
+- `--user <nombre>` sets up a separate profile workspace (`perfiles/<nombre>/`) for another person or identity; without it, setup configures the current workspace.
 - Can be re-run with `--section <name>` to update specific sections (e.g., `/setup --section search` to reconfigure job search queries without re-doing the full profile).
 - Section 9 (search) in Path C, and the equivalent follow-up questions in Path A, proactively suggest role types the user may not have considered.
 - At the end, suggest running `/scrape` and `/apply` with a test job posting.

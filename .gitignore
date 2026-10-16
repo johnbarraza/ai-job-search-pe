@@ -122,3 +122,6 @@ company_research/*.json
 
 # MyWorkIn company-index cache (tools/myworkin_salaries.py)
 .cache/
+
+# Profiles (tools/perfiles.py, /setup --user): one personal workspace per person, never committed
+perfiles/

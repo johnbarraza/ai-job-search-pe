@@ -45,6 +45,7 @@ Si ya lo clonaste sin `--recurse-submodules`: `git submodule update --init vendo
 | **Nivel del puesto** en cada resultado: práctica preprofesional o profesional, pasantía, programa de extensión, trainee, asistente de investigación, asistente, analista, asociado, junior… comparado con lo que buscas | campo `level`; `Target level` en `CLAUDE.md` |
 | **Programas de extensión** (OSINERGMIN, OSIPTEL, SUNASS, ProInversión, SMV, BCRP, SBS, OSITRAN, INDECOPI) con plazos verificados, ordenados por cierre | `python tools/pe_programas.py` · `data/peru/programas_extension.json` |
 | **CV de 1 página** por defecto (lo más común en Perú); 2 páginas solo si lo pides | `CV length:` en `CLAUDE.md` |
+| **Perfiles**: una carpeta de trabajo por persona (`/setup --user <nombre>`), que nunca se sube | `tools/perfiles.py` · `perfiles/<nombre>/` |
 | **Calculadora de sueldo**: planilla general vs pequeña/micro empresa (REMYPE) vs recibo por honorarios vs prácticas, con RMV, UIT, AFP/ONP y renta 2026 | `python tools/pe_sueldo.py 4000 --comparar` |
 | **Sueldos por empresa** (MyWorkIn, autodeclarados) volcados a `salary_data.json` para `/apply` | `python tools/myworkin_salaries.py "Credicorp"` |
 | **Guía del mercado**: CV peruano (ciclo, quinto/tercio superior, grados), convocatorias del Estado (CAS), Ley de prácticas (subvención, seguro FOLA o EsSalud), cómo leer una oferta, modalidad, nivel, distritos de Lima | `.claude/skills/job-application-assistant/10-peru-market.md` |
@@ -68,6 +69,32 @@ ID                               TITLE                                    LOCATI
 FA8A687D196315B661373E686DCF3405 Practicante Preprofesional de Economía y Chorrillos, Lima       híbrido      práctica preprofesional
 FCA076EA60C14D4B61373E686DCF3405 Practicante Profesional de Economía, Adm Santiago De Surco, Lim presencial   práctica profesional
 ```
+
+### Perfiles: varias áreas o varias personas
+
+- **Una persona, varias áreas** (finanzas, regulación, sector público): no hace falta nada
+  especial. Cada área es una categoría de búsqueda en tu `search-queries.md`;
+  `/scrape finanzas` o `/scrape regulación` buscan solo en esa, y `/apply` adapta cada CV a
+  su oferta desde tu CV maestro.
+- **Otra persona** (por ejemplo, ayudar a un amigo): `/setup --user <nombre>` le crea un
+  **perfil**, una carpeta de trabajo propia en `perfiles/<nombre>/`. Es un `git worktree`:
+  no descarga nada, comparte el historial y tiene su propio perfil, CVs, tracker y ofertas
+  vistas, sin mezclarse con los tuyos. Sin `--user`, `/setup` configura la carpeta actual
+  (tú).
+
+```bash
+/setup --user ana                                   # crea perfiles/ana y la configura
+python tools/perfiles.py lista                      # perfiles y si ya están configurados
+python tools/perfiles.py actualizar ana --guardar   # trae las mejoras de master al perfil
+python tools/perfiles.py borrar ana --si            # borra el perfil (sin --si solo simula)
+```
+
+Para trabajar con un perfil, abre Claude Code **dentro** de su carpeta (`cd perfiles/ana`,
+`claude`): Claude carga el perfil desde la carpeta donde se abre. Los perfiles nunca se
+suben: `perfiles/` está en el `.gitignore` y un hook local de git rechaza el push de
+cualquier rama `perfil/*`, aunque alguien haga `git push --all`. Como tu fork es público,
+conviene que tu búsqueda real también viva en un perfil (`/setup --user <tu-nombre>`) y que
+la raíz del repo quede como plantilla.
 
 ### Programas de extensión
 

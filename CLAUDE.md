@@ -97,6 +97,7 @@ automatically from your Languages table above - don't duplicate them here. -->
 - `.agents/skills/` - Job search CLI tools (Peru: `computrabajo-search`, `bumeran-search`, `getonboard-search`, plus `linkedin-search` with `-l "Lima, Peru"`)
 - `.claude/skills/job-application-assistant/10-peru-market.md` - Peruvian market rules: CV conventions, public-sector convocatorias, prácticas law, pay regimes, Lima districts
 - `tools/pe_sueldo.py` / `tools/myworkin_salaries.py` - Peruvian pay calculator and per-company salary lookup
+- `tools/perfiles.py` / `perfiles/<nombre>/` - one workspace per person (`/setup --user <nombre>`): a git worktree on a local `perfil/<nombre>` branch that a pre-push hook never lets reach a remote; open Claude Code inside it to work on that person's search
 
 ## Workflow for New Job Applications
 1. User provides a job posting (URL or text)

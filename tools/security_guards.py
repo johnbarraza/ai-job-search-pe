@@ -125,6 +125,9 @@ REQUIRED_IGNORE_RULES = [
     "company_research/*.json",
     # Machine-local Claude Code user configuration and ad-hoc permissions approvals.
     ".claude/settings.local.json",
+    # Peru fork: per-person workspaces (tools/perfiles.py, /setup --user). Each holds a
+    # full profile, CVs and tracker; dropping this rule would offer them to `git add -A`.
+    "perfiles/",
 ]
 
 # Negation (re-include) rules the template legitimately ships. .gitignore is
