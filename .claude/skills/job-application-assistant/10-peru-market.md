@@ -1,5 +1,5 @@
 ---
-framework_version: 1.4.0
+framework_version: 1.4.1
 ---
 
 # Mercado laboral peruano (fork Perú)
@@ -324,6 +324,12 @@ Reglas para cada calificación:
   ventas, almacén y producción, no su equipo de selección.
 - **Fíjate en la fecha.** Computrabajo ordena por "Más relevantes", no por fecha, y una
   opinión de hace años habla de otra gerencia.
+- **Desconfía de las ráfagas y de los extremos.** Una distribución en U (casi todo 1 o 5
+  estrellas, nada en el medio), o un bloque de opiniones de 5 estrellas del mismo mes y del
+  mismo equipo, calza con una campaña interna para pedir evaluaciones. Ejemplo (octubre de
+  2026): Apex America Perú tiene 2,7 con 41 opiniones (50 % de 1 estrella, 40 % de 5), y
+  las 10 de su primera página son de 5 estrellas, de septiembre de 2026, varias del propio
+  equipo de selección. Repórtalo así, sin afirmar que hubo manipulación.
 - **No promedies entre plataformas.** Cada una atrae a otro público: Glassdoor a puestos
   corporativos, Computrabajo a operativos. Repórtalas por separado.
 - **Sin calificación no es mala señal.** Las empresas pequeñas casi no tienen opiniones. Usa
