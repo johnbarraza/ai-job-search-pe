@@ -769,6 +769,11 @@ describe("normalizeCompanySlug", () => {
     expect(normalizeCompanySlug("Adecco")).toBe("adecco");
     expect(normalizeCompanySlug("https://pe.computrabajo.com/adecco")).toBe("adecco");
     expect(normalizeCompanySlug("pe.computrabajo.com/austral-group-saa/evaluaciones")).toBe("austral-group-saa");
+    expect(normalizeCompanySlug("https://pe.computrabajo.com/grupo_polo")).toBe("grupo_polo");
+  });
+
+  test("a profile-less company's /empresas/ link has no review page", () => {
+    expect(normalizeCompanySlug("https://pe.computrabajo.com/empresas/ofertas-de-trabajo-de-klar-B9DDE726D653C273")).toBeNull();
   });
 
   test("job and search paths are not company slugs", () => {

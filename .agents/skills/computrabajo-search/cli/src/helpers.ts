@@ -649,8 +649,10 @@ function esNumber(text: string | null | undefined): number | null {
 /** A company slug from a bare slug or a pe.computrabajo.com company / reviews URL. */
 export function normalizeCompanySlug(input: string): string | null {
   const t = input.trim()
-  const fromUrl = t.match(/^(?:https?:\/\/)?pe\.computrabajo\.com\/([a-z0-9-]+)(?:[/?#]|$)/i)
-  const slug = fromUrl ? fromUrl[1] : /^[a-z0-9-]+$/i.test(t) ? t : null
+  // Slugs may carry underscores (live: "grupo_polo"). Companies without a profile link to
+  // /empresas/ofertas-de-trabajo-de-<name>-<id> instead and have no review page.
+  const fromUrl = t.match(/^(?:https?:\/\/)?pe\.computrabajo\.com\/([a-z0-9_-]+)(?:[/?#]|$)/i)
+  const slug = fromUrl ? fromUrl[1] : /^[a-z0-9_-]+$/i.test(t) ? t : null
   if (!slug || ["ofertas-de-trabajo", "empresas"].includes(slug.toLowerCase()) || /^trabajo-de-/i.test(slug)) return null
   return slug.toLowerCase()
 }
