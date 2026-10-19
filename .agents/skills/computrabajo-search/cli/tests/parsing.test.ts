@@ -9,6 +9,8 @@ import {
   parseTotalResults,
   resolveLocationSlug,
   modalityFromChip,
+  parseCompanyReviews,
+  normalizeCompanySlug,
 } from "../src/helpers";
 
 // Search-card markup modeled on real cards captured live from
@@ -670,5 +672,108 @@ describe("parseJobDetail: <h2> 'Descripción de la oferta' heading", () => {
     expect(job.schedule).toBe("Tiempo completo");
     expect(job.modality).toBe("presencial");
     expect(job.level).toBe("asistente");
+  });
+});
+
+// Company review page markup as served live (pe.computrabajo.com/adecco/evaluaciones-de-
+// recursos-humanos, October 2026), trimmed to the parsed blocks.
+const review = (width: number, position: string, status: string, place: string, when: string, text: string, rec = "Recomienda trabajar aquí") => `
+<div class="pt10 pb10 mbB" data-valuation_rating>
+    <p class="fs18 posRel">
+        <span class="stars">
+            <span style="width:${width}%;"></span>
+        </span>
+        <span class="box_drop vm js_reviews" data-reviews><span class="icon i_down_drop"></span></span>
+        <span class="fwB">
+${position}        </span>
+    </p>
+    <p class="list_dot fc_aux mb10">
+        <span>${status}</span>
+        <span>
+            ${place}
+        </span>
+        <span>${when}</span>
+    </p>
+    <ul class="box_border small dFlex fx_wrap tj_fx mb10 hide js_rate_detail" data-reviews_info>
+        <li class="mr10"><p class="fc_aux fs14">Ambiente de trabajo</p></li>
+    </ul>
+    <p class="mb10">${text}</p>
+                <p class="fc_ok"><span class="icon i_like mr10 vb"></span>${rec}</p>
+</div>`;
+
+const COMPANY_HTML = `
+<h2 class="fwB fs18 mb20 mt0">Evaluaciones y opiniones de  Adecco Per&#250; S.A.</h2>
+<select id="filterByCategory" class="fl100"><option value="0"data-path="/adecco/evaluaciones">Categoría</option><option value="1"data-path="/adecco/evaluaciones-de-administracion-oficina">Administración / Oficina (122)</option><option value="13" selected data-path="/adecco/evaluaciones-de-recursos-humanos">Recursos Humanos (65)</option></select>
+<select id="filterByLocation" class="fl100"><option value="0"data-path="/adecco/evaluaciones-de-recursos-humanos?prov=0">Localización</option><option value="16"data-path="/adecco/evaluaciones-de-recursos-humanos?prov=16">Lima (32)</option></select>
+<p class="fs16">Se encontraron&nbsp;<strong>65</strong>&nbsp;evaluaciones con los criterios de búsqueda</p>
+${review(100, "L&#237;der de proyectos de Gesti&#243;n humana", "Actual empleado", "Lima", "Septiembre, 2021", "Consultora No. 1")}
+${review(60, "Asistente/a de n&#243;mina", "Ex empleado", "Arequipa", "Agosto, 2018", "Mucha carga", "No recomienda trabajar aquí")}
+<p class="fs50 fwB lh1 tc">4,26</p>
+<p class="fc_aux mt5 fs15">20.188&nbsp;Evaluaciones</p>
+<ul class="graphic_bar">
+  <li class="cols mt10 mb10"><div class="w1 pr15 fs11">5</div><div class="w100"><div class="bar small w100_m"><span class="bg_5" style="width:80%"></span><p class="result fs11">56%</p></div></div></li>
+  <li class="cols mt10 mb10"><div class="w1 pr15 fs11">1</div><div class="w100"><div class="bar small w100_m"><span class="bg_1" style="width:3%"></span><p class="result fs11">2%</p></div></div></li>
+</ul>
+<div><p class="fs18 fwB">3,98</p>
+    <p class="fs13">Ambiente de trabajo</p></div>
+<div><p class="fs18 fwB">3,50</p>
+    <p class="fs13">Oportunidades de carrera</p></div>
+<p class="tc mt20 hide_m">
+    <span class="fwB">94%</span>&nbsp;recomiendan trabajar aquí
+</p>`;
+
+describe("parseCompanyReviews", () => {
+  const r = parseCompanyReviews(
+    COMPANY_HTML,
+    "adecco",
+    "https://pe.computrabajo.com/adecco/evaluaciones-de-recursos-humanos",
+  );
+
+  test("company-wide rating, review count, distribution, subratings and recommend share", () => {
+    expect(r.company).toBe("Adecco Perú S.A.");
+    expect(r.rating).toBe(4.26);
+    expect(r.reviews).toBe(20188);
+    expect(r.distribution).toEqual({ "5": 56, "1": 2 });
+    expect(r.subratings).toEqual({ "Ambiente de trabajo": 3.98, "Oportunidades de carrera": 3.5 });
+    expect(r.recommendPct).toBe(94);
+  });
+
+  test("area filter: matching count and the selected area's name; counts per area and region", () => {
+    expect(r.matching).toBe(65);
+    expect(r.area).toBe("Recursos Humanos");
+    expect(r.areas).toEqual([
+      { name: "Administración / Oficina", count: 122, path: "/adecco/evaluaciones-de-administracion-oficina" },
+      { name: "Recursos Humanos", count: 65, path: "/adecco/evaluaciones-de-recursos-humanos" },
+    ]);
+    expect(r.locations).toEqual([{ name: "Lima", count: 32 }]);
+  });
+
+  test("each listed review: stars, position, current/former, place, month, text, recommendation", () => {
+    expect(r.sample).toEqual([
+      { stars: 5, position: "Líder de proyectos de Gestión humana", current: true, location: "Lima", date: "2021-09", text: "Consultora No. 1", recommends: true },
+      { stars: 3, position: "Asistente/a de nómina", current: false, location: "Arequipa", date: "2018-08", text: "Mucha carga", recommends: false },
+    ]);
+  });
+
+  test("a page without reviews yields nulls and empty lists, not a crash", () => {
+    const empty = parseCompanyReviews("<html></html>", "x", "https://pe.computrabajo.com/x/evaluaciones");
+    expect(empty.rating).toBeNull();
+    expect(empty.reviews).toBeNull();
+    expect(empty.sample).toEqual([]);
+    expect(empty.area).toBeNull();
+  });
+});
+
+describe("normalizeCompanySlug", () => {
+  test("bare slug and company / review URLs", () => {
+    expect(normalizeCompanySlug("Adecco")).toBe("adecco");
+    expect(normalizeCompanySlug("https://pe.computrabajo.com/adecco")).toBe("adecco");
+    expect(normalizeCompanySlug("pe.computrabajo.com/austral-group-saa/evaluaciones")).toBe("austral-group-saa");
+  });
+
+  test("job and search paths are not company slugs", () => {
+    expect(normalizeCompanySlug("https://pe.computrabajo.com/ofertas-de-trabajo/oferta-de-trabajo-de-x-1")).toBeNull();
+    expect(normalizeCompanySlug("https://pe.computrabajo.com/trabajo-de-contador")).toBeNull();
+    expect(normalizeCompanySlug("https://example.com/adecco")).toBeNull();
   });
 });

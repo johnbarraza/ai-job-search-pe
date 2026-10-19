@@ -105,6 +105,22 @@ days, not an employer deadline).
 Relative dates ("Hoy", "Hace 3 horas") count on the Lima calendar (UTC-5). See
 `10-peru-market.md` section 10 and `tools/pe_frescura.py`.
 
+### Company reviews
+
+```bash
+bun run .agents/skills/computrabajo-search/cli/src/cli.ts company <slug|url> [--area <name>] [--format json|plain]
+```
+
+`slug` is the company path from a posting's `companyUrl` (e.g. `adecco`). Returns the
+company-wide `rating` with its review count (`reviews`), star `distribution`, `subratings`,
+`recommendPct`, review counts per `areas` and `locations`, and the `sample` of reviews listed
+on the page (stars, position, current/former, place, month, text). `--area "recursos
+humanos"` fetches that area's page (`/<slug>/evaluaciones-de-<area>`, a clean path); the
+side-box rating stays company-wide there, so judge the area by `matching` and the `sample`.
+Reviews come in the site's "Más relevantes" order, not newest first. Read every rating with
+its count, area and dates (`10-peru-market.md` section 11). The CLI never uses the
+location/category query filters, which robots.txt disallows under `/empresas/`.
+
 ## Usage examples
 
 ```bash

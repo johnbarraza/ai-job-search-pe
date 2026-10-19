@@ -9,6 +9,7 @@
 
 import { runSearch, type SearchOpts } from "./commands/search.js"
 import { runDetail, type DetailOpts } from "./commands/detail.js"
+import { runCompany, type CompanyOpts } from "./commands/company.js"
 
 interface Flags {
   _: string[]
@@ -41,6 +42,15 @@ const HELP = `computrabajo-cli — search jobs on Computrabajo Perú (pe.computr
 USAGE
   bun run src/cli.ts search [--query <text>] [--location <text>] [flags]
   bun run src/cli.ts detail <id|url> [--format json|plain]
+  bun run src/cli.ts company <slug|url> [--area <name>] [--format json|plain]
+
+COMPANY
+  Employee reviews ("evaluaciones") of a company: company-wide rating with its review
+  count, star distribution, subratings, % who recommend it, review counts by area and
+  region, and the reviews listed on the page (position, current/former, place, month).
+  <slug> is the company path from a posting's companyUrl, e.g. "adecco".
+  --area <name>           Reviews from one area only, e.g. "recursos humanos" (the
+                          rating stays company-wide; read the listed reviews).
 
 SEARCH FLAGS
   --query, -q <text>      Keywords (job title, skill, or role), e.g. "analista de
@@ -65,6 +75,7 @@ EXAMPLES
   bun run src/cli.ts search -q "desarrollador" --remote remote --format table
   bun run src/cli.ts search -l "Arequipa" --format table
   bun run src/cli.ts detail A1159FCAE890A3F861373E686DCF3405 --format plain
+  bun run src/cli.ts company adecco --area "recursos humanos" --format plain
 
 Personal use only — keep volume low (see SKILL.md).
 `
@@ -75,6 +86,7 @@ Personal use only — keep volume low (see SKILL.md).
 const KNOWN_FLAGS: Record<string, Set<string>> = {
   search: new Set(["query", "location", "remote", "jobage", "page", "limit", "format", "help", "h"]),
   detail: new Set(["format", "help", "h"]),
+  company: new Set(["area", "format", "help", "h"]),
 }
 
 function fail(error: string, code: string): number {
@@ -160,6 +172,20 @@ async function main(): Promise<number> {
     }
     const opts: DetailOpts = { id, format: fmt as DetailOpts["format"] }
     return runDetail(opts)
+  }
+
+  if (cmd === "company") {
+    const company = (flags._ as string[])[1]
+    if (!company) return fail("company requires a <slug|url>", "NO_ID")
+    const fmt = flags.format !== undefined ? String(flags.format) : "json"
+    if (!["json", "plain"].includes(fmt)) {
+      return fail(`--format must be one of json|plain for company, got "${fmt}"`, "BAD_ARG")
+    }
+    if (flags.area !== undefined && typeof flags.area !== "string") {
+      return fail("--area requires a value, e.g. --area \"recursos humanos\"", "BAD_ARG")
+    }
+    const opts: CompanyOpts = { company, area: flags.area as string | undefined, format: fmt as CompanyOpts["format"] }
+    return runCompany(opts)
   }
 
   return fail(`Unknown command "${cmd}"`, "BAD_CMD")

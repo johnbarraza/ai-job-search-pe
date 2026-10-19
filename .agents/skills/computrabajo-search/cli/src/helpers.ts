@@ -586,3 +586,166 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     applyUrl,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Company reviews ("evaluaciones")
+// ---------------------------------------------------------------------------
+
+export interface ReviewArea {
+  name: string
+  count: number
+  /** Path of the area-filtered review page, e.g. "/adecco/evaluaciones-de-recursos-humanos". */
+  path: string
+}
+
+export interface CompanyReview {
+  /** Overall stars of this review, 1-5 (from the star bar width). */
+  stars: number | null
+  position: string | null
+  /** true = "Actual empleado"; false = former employee; null when the page does not say. */
+  current: boolean | null
+  location: string | null
+  /** Month of the review, YYYY-MM. */
+  date: string | null
+  text: string | null
+  recommends: boolean | null
+}
+
+export interface CompanyReviews {
+  slug: string
+  url: string
+  company: string | null
+  /** Company-wide rating and review count: the side box shows these even on an area page. */
+  rating: number | null
+  reviews: number | null
+  /** Share of reviews per star, as published (percent). */
+  distribution: Record<string, number>
+  subratings: Record<string, number>
+  recommendPct: number | null
+  /** Reviews matching the page's filter ("Se encontraron N evaluaciones"). */
+  matching: number | null
+  /** The area filter applied, when one was. */
+  area: string | null
+  areas: ReviewArea[]
+  /** Reviews by region, Computrabajo's own counts from the location filter. */
+  locations: { name: string; count: number }[]
+  /** The reviews listed on this page, in the site's "Más relevantes" order (not newest first). */
+  sample: CompanyReview[]
+}
+
+const MONTHS_REVIEW: Record<string, string> = {
+  enero: "01", febrero: "02", marzo: "03", abril: "04", mayo: "05", junio: "06", julio: "07",
+  agosto: "08", septiembre: "09", setiembre: "09", octubre: "10", noviembre: "11", diciembre: "12",
+}
+
+/** "4,26" / "20.188" (Spanish separators) -> number. */
+function esNumber(text: string | null | undefined): number | null {
+  if (!text) return null
+  const t = text.replace(/&nbsp;|\s/g, "")
+  const n = Number(/,\d{1,2}$/.test(t) ? t.replace(/\./g, "").replace(",", ".") : t.replace(/[.,]/g, ""))
+  return t && Number.isFinite(n) ? n : null
+}
+
+/** A company slug from a bare slug or a pe.computrabajo.com company / reviews URL. */
+export function normalizeCompanySlug(input: string): string | null {
+  const t = input.trim()
+  const fromUrl = t.match(/^(?:https?:\/\/)?pe\.computrabajo\.com\/([a-z0-9-]+)(?:[/?#]|$)/i)
+  const slug = fromUrl ? fromUrl[1] : /^[a-z0-9-]+$/i.test(t) ? t : null
+  if (!slug || ["ofertas-de-trabajo", "empresas"].includes(slug.toLowerCase()) || /^trabajo-de-/i.test(slug)) return null
+  return slug.toLowerCase()
+}
+
+/** Parse a company's /<slug>/evaluaciones[-de-<area>] page. */
+export function parseCompanyReviews(html: string, slug: string, url: string): CompanyReviews {
+  // <title>Evaluaciones de Adecco Perú S.A. ...</title> or "Trabajar en Adecco Perú S.A. Perú - ..."
+  const heading = clean(html.match(/Evaluaciones y opiniones de\s*([\s\S]*?)<\//)?.[1])
+  const company = heading || null
+
+  const rating = esNumber(html.match(/<p class="fs50 fwB lh1 tc">\s*([\d,.]+)\s*<\/p>/)?.[1])
+  const reviews = esNumber(html.match(/<p class="fc_aux mt5 fs15">\s*([\d.,]+)(?:&nbsp;|\s)*Evaluaciones/)?.[1])
+
+  const distribution: Record<string, number> = {}
+  const barRe = /<div class="w1 pr15 fs11">\s*(\d)\s*<\/div>[\s\S]*?<p class="result fs11">\s*(\d+)%\s*<\/p>/g
+  let bm: RegExpExecArray | null
+  while ((bm = barRe.exec(html)) !== null) distribution[bm[1]] = parseInt(bm[2], 10)
+
+  const subratings: Record<string, number> = {}
+  const subRe = /<p class="fs18 fwB">\s*([\d,]+)\s*<\/p>\s*<p class="fs13">\s*([^<]+?)\s*<\/p>/g
+  let sm: RegExpExecArray | null
+  while ((sm = subRe.exec(html)) !== null) {
+    const v = esNumber(sm[1])
+    if (v !== null) subratings[decodeHtmlEntities(sm[2])] = v
+  }
+
+  const recommend = html.match(/<span class="fwB">\s*(\d+)%\s*<\/span>(?:&nbsp;|\s)*recomiendan/)
+  const matching = esNumber(html.match(/Se encontraron(?:&nbsp;|\s)*<strong>\s*([\d.,]+)\s*<\/strong>/)?.[1])
+
+  const options = (selectId: string): ReviewArea[] => {
+    const block = html.match(new RegExp(`<select id="${selectId}"[^>]*>([\\s\\S]*?)</select>`))?.[1] ?? ""
+    const out: ReviewArea[] = []
+    // The selected option carries a `selected` attribute before data-path.
+    const optRe = /<option value="[^"]*"[^>]*?data-path="([^"]+)"[^>]*>([\s\S]*?)<\/option>/g
+    let om: RegExpExecArray | null
+    while ((om = optRe.exec(block)) !== null) {
+      const label = clean(om[2]) ?? ""
+      const m = label.match(/^(.*?)\s*\(([\d.,]+)\)$/)
+      if (m) out.push({ name: m[1].trim(), count: esNumber(m[2]) ?? 0, path: decodeHtmlEntities(om[1]) })
+    }
+    return out
+  }
+  const areas = options("filterByCategory")
+  const locations = options("filterByLocation").map(({ name, count }) => ({ name, count }))
+  const areaSlug = url.match(/\/evaluaciones-de-[a-z0-9-]+/)?.[0]
+  const area = areaSlug ? (areas.find((a) => a.path.endsWith(areaSlug))?.name ?? areaSlug.replace("/evaluaciones-de-", "")) : null
+
+  const sample: CompanyReview[] = []
+  for (const chunk of html.split(/data-valuation_rating>/).slice(1)) {
+    const width = chunk.match(/<span class="stars">\s*<span style="width:(\d+)%;?"><\/span>/)?.[1]
+    const position = clean(chunk.match(/<span class="fwB">([\s\S]*?)<\/span>\s*<\/p>/)?.[1])
+    const meta = chunk.match(/<p class="list_dot fc_aux mb10">([\s\S]*?)<\/p>/)?.[1] ?? ""
+    const spans = [...meta.matchAll(/<span>([\s\S]*?)<\/span>/g)].map((m) => clean(m[1]) ?? "")
+    const status = spans.find((s) => /emplead/i.test(s)) ?? null
+    const when = spans.find((s) => /^[a-zñ]+,\s*\d{4}$/i.test(s)) ?? null
+    const whenMatch = when?.toLowerCase().match(/^([a-zñ]+),\s*(\d{4})$/)
+    const location = spans.find((s) => s && s !== status && s !== when) ?? null
+    const text = clean(chunk.match(/<\/ul>\s*<p class="mb10">([\s\S]*?)<\/p>/)?.[1])
+    const rec = chunk.match(/<p class="fc_[a-z]+"><span class="icon i_[a-z_]+ mr10 vb"><\/span>([^<]*)<\/p>/)
+    sample.push({
+      stars: width ? Math.round(parseInt(width, 10) / 2) / 10 : null,
+      position,
+      current: status ? /actual/i.test(status) : null,
+      location,
+      date: whenMatch && MONTHS_REVIEW[whenMatch[1]] ? `${whenMatch[2]}-${MONTHS_REVIEW[whenMatch[1]]}` : null,
+      text,
+      recommends: rec ? !/no recomienda/i.test(rec[1]) : null,
+    })
+  }
+
+  return {
+    slug,
+    url,
+    company,
+    rating,
+    reviews,
+    distribution,
+    subratings,
+    recommendPct: recommend ? parseInt(recommend[1], 10) : null,
+    matching,
+    area,
+    areas,
+    locations,
+    sample,
+  }
+}
+
+/**
+ * Fetch a company's review page, or one area's (`/<slug>/evaluaciones-de-<area>`, a clean
+ * path - unlike the robots-disallowed `?cat=` / `?prov=` filters under /empresas/). Returns
+ * null when the company has no review page (unknown slugs redirect elsewhere).
+ */
+export async function fetchCompanyReviews(slug: string, areaPath?: string): Promise<{ html: string; url: string } | null> {
+  const res = await fetchWithBackoff(`${BASE_URL}${areaPath ?? `/${slug}/evaluaciones`}`)
+  if (!res) return null
+  if (!res.url.includes(`/${slug}/evaluaciones`)) return null
+  return { html: await res.text(), url: res.url.split("?")[0] }
+}

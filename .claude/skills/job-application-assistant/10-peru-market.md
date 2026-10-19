@@ -1,5 +1,5 @@
 ---
-framework_version: 1.3.1
+framework_version: 1.4.0
 ---
 
 # Mercado laboral peruano (fork Perú)
@@ -292,6 +292,73 @@ Reglas:
   LinkedIn con los pares (id, fecha) de la propia búsqueda. Es una señal para priorizar, no un
   juicio sobre el empleador.
 
+## 11. Reputación del empleador: calificaciones y certificaciones
+
+Las calificaciones y los sellos son **referencias**, no mediciones. Algunas empresas no
+tienen ninguna; otras tienen pocas opiniones o solo de otros puestos; y algunas
+certificaciones las paga la propia empresa.
+
+| Fuente | Qué aporta | Cómo la usa el repo | Ojo con |
+|---|---|---|---|
+| Computrabajo | Calificación, número de evaluaciones, subpuntajes (ambiente, salario, oportunidades, dirección), % que la recomienda, conteo por área y región, y cada opinión con su puesto, estado (actual / ex) y mes | `computrabajo-search company <slug> [--area "<área>"]`. El slug sale del `companyUrl` del aviso | En consultoras y tercerizadoras casi todo viene del personal destacado en clientes |
+| Glassdoor | Opiniones de puestos profesionales, con pros y contras, y sueldos | Búsqueda web; pide inicio de sesión | Los volúmenes en Perú suelen ser bajos |
+| Indeed | Opiniones y sueldos | Búsqueda web; `robots.txt` bloquea su búsqueda | Complementaria |
+| Bumeran | Opiniones con categorías | Búsqueda web | Su API muestra un promedio por empresa sin el número de opiniones |
+| MyWorkIn | Sueldos por empresa y puesto | `tools/myworkin_salaries.py` (muestra los aportes por puesto) | Con 1 o 2 aportes es una anécdota, no una escala |
+| Great Place to Work Perú | Encuesta de clima y sello | Búsqueda web en su sitio | Ver abajo: la paga la empresa |
+| SUNAFIL | Sanciones laborales | Búsqueda web de resoluciones | Ver abajo |
+
+Reglas para cada calificación:
+- **Nunca un número solo.** Escribe fuente, calificación, número de opiniones, el área o
+  puesto del que vienen y la fecha de la más reciente. Por ejemplo: "Computrabajo 4,26
+  (20.188 opiniones; de Recursos Humanos solo 65, la más reciente de 2021)".
+- **Con pocas opiniones, el margen se come la diferencia.** Las notas de 1 a 5 varían
+  alrededor de ±1 punto, así que el margen al 95 % es de unos ±2/√n: ±0,35 con 30
+  opiniones y ±0,2 con 100. Con menos de 30 es solo referencial, y con menos de 10 son
+  anécdotas. No ordenes dos empresas por una diferencia menor a ese margen.
+- **De otro puesto no aplica al tuyo.** El promedio de la empresa mezcla áreas. Usa
+  `--area` y lee las opiniones del área del puesto. Ejemplo verificado (octubre de 2026):
+  Adecco Perú tiene 4,26 con 20.188 opiniones en Computrabajo, pero solo 65 son de Recursos
+  Humanos. Las 9 que muestra la primera página van de 2017 a 2021 e incluyen trabajadoras
+  sociales y personal de limpieza. El promedio lo forman sobre todo atención al cliente,
+  ventas, almacén y producción, no su equipo de selección.
+- **Fíjate en la fecha.** Computrabajo ordena por "Más relevantes", no por fecha, y una
+  opinión de hace años habla de otra gerencia.
+- **No promedies entre plataformas.** Cada una atrae a otro público: Glassdoor a puestos
+  corporativos, Computrabajo a operativos. Repórtalas por separado.
+- **Sin calificación no es mala señal.** Las empresas pequeñas casi no tienen opiniones. Usa
+  otras señales: el estado del RUC en SUNAT, las resoluciones de SUNAFIL o el personal de la
+  empresa en LinkedIn.
+
+**Great Place to Work Perú.** Según su página de certificación (verificada el 2026-10-18):
+- La certificación tiene una tarifa que cubre la encuesta, el análisis, el perfil y los
+  activos de marca empleadora. Solo certifica quien supera el umbral.
+- La encuesta Trust Index tiene 60 afirmaciones en escala de 5 puntos. Las respuestas de 4 y
+  5 cuentan como positivas, y se pide que "aproximadamente 7 de cada 10" tengan una experiencia
+  positiva.
+- Se requieren 10 colaboradores o más, y el sello dura 12 meses.
+- La empresa "elige la fecha" de la encuesta, en cualquier momento del año.
+- GPTW no divulga nombres ni puntajes de quienes no se certifican.
+
+Esa información genera tres sesgos, aun sin suponer mala fe:
+- **De selección:** solo participan las empresas que pagan.
+- **De publicación:** solo se ven los resultados buenos.
+- **De anticipación:** la empresa sabe cuándo la evalúan.
+
+Además, un promedio alto de la empresa puede ocultar un área con malas condiciones.
+Estar certificada no es lo mismo que entrar al ranking, que suma el Culture Audit. Úsalo
+como señal adicional y nunca en contra de una empresa que no lo tiene.
+
+**SUNAFIL.** No encontré un registro público consolidado de empresas sancionadas. Lo que sí
+se publica son las resoluciones de sanción, de primera instancia, de apelación y del
+Tribunal de Fiscalización Laboral, y nombran a la empresa por razón social y RUC. Para
+buscarlas: `site:gob.pe sunafil "<razón social>"` o el RUC. Al leerlas:
+- Una multa de primera instancia puede apelarse.
+- Las empresas grandes reciben más inspecciones.
+- Lo que importa es el tipo de infracción: beneficios impagos, seguridad y salud, prácticas
+  o intermediación desnaturalizadas.
+- Que no aparezca nada no prueba que esté limpia.
+
 ## Fuentes (consultadas 2026-10-15)
 
 - RMV: [El Peruano, D.S. 015-2026-TR](https://busquedas.elperuano.pe/dispositivo/EX/2559163-1);
@@ -309,3 +376,6 @@ Reglas:
 - REMYPE: [LP Derecho, régimen REMYPE laboral](https://lpderecho.pe/regimen-remype-laboral)
 - Sueldos por empresa: [MyWorkIn](https://www.myworkin.ai/salaries)
 - Programas de extensión: fuentes por programa en `data/peru/programas_extension.json` (campo `sources`).
+- Great Place to Work Perú, certificación (consultada 2026-10-18): [Certifícate](https://www.greatplacetowork.com.pe/certificacion/certificate)
+- Opiniones de empresas: [Computrabajo, evaluaciones de Adecco Perú](https://pe.computrabajo.com/adecco/evaluaciones) (2026-10-18)
+- Resoluciones de SUNAFIL publicadas: [LP Derecho, Resolución 520-2021-SUNAFIL/TFL](https://lpderecho.pe/empresa-es-responsable-frente-a-sunafil-aunque-ya-no-exista-vinculo-laboral-resolucion-520-2021-sunafil-tfl/)

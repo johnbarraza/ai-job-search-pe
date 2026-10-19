@@ -73,6 +73,29 @@ describe("Computrabajo CLI flag validation", () => {
     });
   });
 
+  describe("company argument and flag validation", () => {
+    test("missing slug exits 1 with NO_ID", async () => {
+      const result = await runCLI(["company"]);
+      expect(result.exitCode).toBe(1);
+      expect(parsedStderr(result.stderr).code).toBe("NO_ID");
+    });
+
+    test("a job URL is not a company slug: BAD_ID before any request", async () => {
+      const result = await runCLI(["company", "https://pe.computrabajo.com/ofertas-de-trabajo/oferta-de-trabajo-de-x-1"]);
+      expect(result.exitCode).toBe(1);
+      expect(parsedStderr(result.stderr).code).toBe("BAD_ID");
+    });
+
+    test("search-only flags and unsupported formats are rejected", async () => {
+      const bogus = await runCLI(["company", "adecco", "--location", "Lima"]);
+      expect(parsedStderr(bogus.stderr).code).toBe("UNKNOWN_FLAG");
+      const fmt = await runCLI(["company", "adecco", "--format", "table"]);
+      expect(parsedStderr(fmt.stderr).code).toBe("BAD_ARG");
+      const area = await runCLI(["company", "adecco", "--area"]);
+      expect(parsedStderr(area.stderr).code).toBe("BAD_ARG");
+    });
+  });
+
   describe("unknown flags are rejected, never silently dropped", () => {
     test("search with a bogus flag exits 1 with UNKNOWN_FLAG", async () => {
       const result = await runCLI(["search", "-q", "react", "--salary", "5000"]);
