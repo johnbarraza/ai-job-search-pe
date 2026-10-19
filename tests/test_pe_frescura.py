@@ -58,6 +58,11 @@ class Windows(unittest.TestCase):
     def test_very_old_postings_are_high_risk(self):
         self.assertEqual(one(ct(date="2026-08-20"))["risk"], "alto")
 
+    def test_computrabajo_age_is_a_floor_and_says_so(self):
+        self.assertTrue(one(ct())["age_is_minimum"])
+        linkedin = one({"id": "1", "url": "https://www.linkedin.com/jobs/view/1", "date": "2026-10-15"})
+        self.assertFalse(linkedin["age_is_minimum"])
+
     def test_missing_date_is_reported_not_guessed(self):
         row = one(ct(date=None))
         self.assertEqual((row["window"], row["age_days"], row["risk"]), ("sin fecha", None, "bajo"))
@@ -90,6 +95,14 @@ class Reposts(unittest.TestCase):
         row = one(old, bm_run())
         self.assertEqual(row["risk"], "alto")  # its real age is past OLD_DAYS
         self.assertTrue(any("republicado" in s for s in row["signals"]))
+        self.assertLess(date.fromisoformat(row["id_created_estimate"]), date(2026, 9, 1))
+
+    def test_one_odd_day_cannot_tilt_the_calendar(self):
+        # Live failure: a single low id on the run's first day made a piecewise fit date
+        # C. Mejía's aviso to late September instead of about August.
+        odd_first_day = [{"id": "1118420609", "title": "Odd", "company": "Z", "url": BM.format(1118420609), "date": "2026-10-04"}]
+        old = {"id": "1118384615", "title": "Asistente R&S", "company": "C. Mejía", "url": BM.format(1118384615), "date": "2026-10-13"}
+        row = one(old, bm_run() + odd_first_day)
         self.assertLess(date.fromisoformat(row["id_created_estimate"]), date(2026, 9, 1))
 
     def test_an_id_in_line_with_its_date_is_not_flagged(self):

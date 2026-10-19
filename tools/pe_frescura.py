@@ -103,9 +103,10 @@ def load_postings(path: Path) -> list[dict]:
 class IdCalendar:
     """Maps a sequential posting id to the date it was most likely created, per portal.
 
-    Built from the median id of each publication date, kept only while it rises (a few
-    republished avisos per day cannot drag a median), so an outlier id stands out
-    against its own day's peers.
+    Fits day = a + k * id through the median id of each publication date with a
+    Theil-Sen line (median of pairwise slopes): a republished aviso, or a whole day
+    represented by one odd posting, cannot tilt it, so an outlier id stands out
+    against its peers.
     """
 
     def __init__(self, postings: list[dict]):
@@ -115,29 +116,30 @@ class IdCalendar:
             pid, day = numeric_id(p, portal), parse(p.get("date"))
             if pid and day:
                 by_portal.setdefault(portal, {}).setdefault(day, []).append(pid)
-        self.points: dict[str, list[tuple[int, date]]] = {}
+        self.lines: dict[str, tuple[float, float]] = {}
         for portal, days in by_portal.items():
-            points: list[tuple[int, date]] = []
-            for day in sorted(days):
-                median = int(statistics.median(days[day]))
-                if not points or median > points[-1][0]:
-                    points.append((median, day))
-            if len(points) >= 3 and (points[-1][1] - points[0][1]).days >= 5:
-                self.points[portal] = points
+            points = [(statistics.median(ids), day.toordinal()) for day, ids in days.items()]
+            if len(points) < 3 or max(d for _, d in points) - min(d for _, d in points) < 5:
+                continue
+            slopes = [
+                (d2 - d1) / (i2 - i1)
+                for k, (i1, d1) in enumerate(points)
+                for i2, d2 in points[k + 1 :]
+                if i2 != i1
+            ]
+            if not slopes:
+                continue
+            per_id = statistics.median(slopes)
+            if per_id <= 0:
+                continue
+            self.lines[portal] = (statistics.median(d - per_id * i for i, d in points), per_id)
 
     def created(self, portal: str, pid: int | None) -> date | None:
-        points = self.points.get(portal)
-        if not points or pid is None:
+        line = self.lines.get(portal)
+        if not line or pid is None:
             return None
-        (first_id, first_day), (last_id, last_day) = points[0], points[-1]
-        if pid <= first_id:
-            per_day = (last_id - first_id) / max((last_day - first_day).days, 1)
-            return first_day - timedelta(days=round((first_id - pid) / per_day))
-        for (lo_id, lo_day), (hi_id, hi_day) in zip(points, points[1:]):
-            if lo_id <= pid <= hi_id:
-                share = (pid - lo_id) / (hi_id - lo_id)
-                return lo_day + timedelta(days=round(share * (hi_day - lo_day).days))
-        return last_day
+        intercept, per_id = line
+        return date.fromordinal(round(intercept + per_id * pid))
 
 
 def annotate(posting: dict, today: date, calendar: IdCalendar, copies: int) -> dict:
@@ -217,6 +219,8 @@ def annotate(posting: dict, today: date, calendar: IdCalendar, copies: int) -> d
         "original_date": original.isoformat() if original else None,
         "id_created_estimate": created.isoformat() if created else None,
         "age_days": age,
+        # Computrabajo resets datePosted when a posting is republished: its age is a floor.
+        "age_is_minimum": portal == "computrabajo",
         "updated": updated.isoformat() if updated else None,
         "valid_through": expiry.isoformat() if expiry else None,
         "applicants": applicants,
@@ -243,8 +247,11 @@ def evaluate(postings: list[dict], calibration: list[dict], today: date) -> list
 
 def render(rows: list[dict], today: date) -> str:
     out = [f"Frescura de ofertas al {today.isoformat()} (edad desde la publicación original)"]
+    if any(r["age_is_minimum"] for r in rows):
+        out.append("≥ = Computrabajo: inicio de la publicación vigente; la edad real puede ser mayor")
     for r in rows:
-        age = f"{r['age_days']} d" if r["age_days"] is not None else "?"
+        floor = "≥" if r["age_is_minimum"] else ""
+        age = f"{floor}{r['age_days']} d" if r["age_days"] is not None else "?"
         out.append(
             f"\n[{r['risk'].upper():<5}] {r['window']:<9} {age:>5} · publicada {r['original_date'] or '?'}"
             f" · {r['company'] or '—'} · {r['title'] or '—'}"

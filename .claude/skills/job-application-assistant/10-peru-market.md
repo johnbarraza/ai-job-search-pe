@@ -267,13 +267,14 @@ muestra cada portal **no es la edad del aviso**:
 
 | Portal | Qué fecha muestra la búsqueda | Dónde está la fecha real | Otras señales en `detail` |
 |---|---|---|---|
-| Computrabajo | La última **renovación**: el empleador "actualiza" el aviso para volver arriba. En una búsqueda real de octubre de 2026, los 20 avisos de la página parecían de "hace horas" | JSON-LD de la página: `date` (= `datePosted`) | `updated` (renovación), `validThrough` (vencimiento del portal: publicación + 60 días) |
+| Computrabajo | La última **renovación**: el empleador "actualiza" el aviso para volver arriba. En una búsqueda real de octubre de 2026, los 20 avisos de la página parecían de "hace horas" | JSON-LD de la página: `date` (= `datePosted`), el inicio de la publicación **vigente**. Republicar la reinicia (en una muestra de 36 avisos, 11 renovados compartían el mismo `datePosted`), así que es una edad **mínima** | `updated` (renovación), `validThrough` (vencimiento del portal: `datePosted` + 60 días) |
 | Bumeran | `fechaPublicacion`, que el empleador puede reiniciar al republicar | Los ids son secuenciales: un id muy bajo para su fecha delata un aviso antiguo | `updated`, `validThrough` (fin del plan), `status`, `vacancies`, `contractType` (a veces "Temporal" aunque el texto no lo diga) |
 | LinkedIn | La fecha del último *repost* | Ids secuenciales, igual que Bumeran | `postedAgo`, `reposted`, `applicants` ("189 applicants"), `isActive` |
 
 Reglas:
 - **Edad desde la publicación original**, nunca desde la renovación. ≤ 7 días: *fresca*
-  (postula ya); 8 a 21: *en curso*; 22 a 45: *vieja*; más de 45: *muy vieja*.
+  (postula ya); 8 a 21: *en curso*; 22 a 45: *vieja*; más de 45: *muy vieja*. En
+  Computrabajo es un mínimo ("≥ 16 d"): un aviso "fresco" ahí puede ser una republicación.
 - **El vencimiento del portal no es una fecha de cierre.** `validThrough` sale del plan
   contratado (60 días en Computrabajo, ~90 en Bumeran); solo es una fecha límite real cuando
   la oferta la escribe o en una convocatoria pública (cronograma de las bases). Nunca la

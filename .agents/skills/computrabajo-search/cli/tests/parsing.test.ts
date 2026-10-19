@@ -347,6 +347,15 @@ describe("parseJobDetail: original publication vs renewal (JSON-LD)", () => {
     expect(plain.date).toBe("2026-06-16");
     expect(plain.updated).toBeNull();
   });
+
+  test("an '(actualizada)' marker on the publication day itself is not a renewal", () => {
+    const sameDay = parseJobDetail(
+      JSONLD_DETAIL_HTML.replace("10 de julio (actualizada)", "16 de junio (actualizada)"),
+      "X",
+      new Date("2026-07-27T12:00:00Z"),
+    );
+    expect(sameDay.updated).toBeNull();
+  });
 });
 
 describe("parseJobDetail: anonymized employer", () => {

@@ -123,8 +123,8 @@ Back in the main context, for each scored job:
    search showed, and for Computrabajo that is the last renewal, for Bumeran and LinkedIn
    possibly a republication - rule 7 alone understates age. For every job in the
    shortlist (Strong and Good Fit), save its CLI `detail --format json` output, which
-   carries the original publication date, renewal, portal expiry, closed state and (on
-   LinkedIn) applicants, and run
+   carries the best publication date the portal exposes, renewal, portal expiry, closed
+   state and (on LinkedIn) applicants, and run
    `python tools/pe_frescura.py <detail files> --calibrar job_scraper/seen_jobs.json --json`.
    Show its `risk` (bajo / medio / alto), `window` and the age from the original
    publication next to the score; a `medio` or `alto` risk carries a visible ⚠ with the

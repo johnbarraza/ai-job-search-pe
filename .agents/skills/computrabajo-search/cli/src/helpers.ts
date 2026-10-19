@@ -124,9 +124,10 @@ export function modalityFromChip(chip: string | null): Modality {
 
 export interface JobDetail extends JobCard {
   /**
-   * Last renewal date, when the page marks the posting "(actualizada)": employers
-   * renew postings to push them back to the top of the search, and the search cards
-   * only ever show this renewal date. `date` on a detail is the original publication.
+   * Last renewal date, when later than `date`: employers renew postings to push them
+   * back to the top of the search, and the search cards only ever show this renewal
+   * date. `date` on a detail is the JSON-LD datePosted, the start of the current
+   * publication period (republishing resets it, so it is an age floor).
    */
   updated: string | null
   /** Expiry the portal publishes in the page's JSON-LD (observed: datePosted + 60 days). */
@@ -546,14 +547,18 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     if (s) skills.push(s)
   }
 
-  // The visible date is the last renewal when marked "(actualizada)"; the original
-  // publication date comes from the JSON-LD and wins when present.
+  // The visible date is the last renewal when marked "(actualizada)"; the JSON-LD
+  // datePosted wins when present. It is the start of the current publication period,
+  // not necessarily the first one: in a 36-posting sample (October 2026) 11 carried the
+  // same datePosted, all of them renewed, so republishing resets it - an age floor.
   const dateMatch = html.match(/<p class="fc_aux fs13">\s*([\s\S]*?)\s*<\/p>/)
   const shownText = dateMatch ? clean(dateMatch[1]) : null
   const shown = normalizeRelativeDate(shownText, now)
   const datePosted = jsonLdDate(html, "datePosted")
   const date = datePosted ?? shown
-  const updated = isRenewed(shownText) || (shown && datePosted && shown > datePosted) ? shown : null
+  const updated = datePosted
+    ? shown && shown > datePosted ? shown : null
+    : isRenewed(shownText) ? shown : null
   const validThrough = jsonLdDate(html, "validThrough")
 
   const applyMatch = html.match(/data-href-offer-apply="([^"]+)"/)

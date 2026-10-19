@@ -97,9 +97,11 @@ workplace chips, dates, and the apply link.
 
 Dates: a search card shows only the posting's **last renewal** (employers "actualizan" a
 posting to push it back to the top), so `--jobage` filters by renewal, not publication. The
-detail page's JSON-LD has the real dates: `date` is the original publication
-(`datePosted`), `updated` the renewal when the page marks it "(actualizada)", and
-`validThrough` the portal's expiry (publication + 60 days, not an employer deadline).
+detail page's JSON-LD has the publication dates: `date` is `datePosted`, the start of the
+current publication period (republishing resets it - in an October 2026 sample, 11 of 36
+renewed postings shared one datePosted - so treat the age as a floor), `updated` the
+renewal when later than that, and `validThrough` the portal's expiry (`datePosted` + 60
+days, not an employer deadline).
 Relative dates ("Hoy", "Hace 3 horas") count on the Lima calendar (UTC-5). See
 `10-peru-market.md` section 10 and `tools/pe_frescura.py`.
 
