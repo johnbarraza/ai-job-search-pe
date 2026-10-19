@@ -46,6 +46,8 @@ ZONES = {
     "Lima Sur": ["Chorrillos", "Lurín", "Pachacámac", "Pucusana", "Punta Hermosa", "Punta Negra", "San Bartolo",
                  "San Juan de Miraflores", "Santa María del Mar", "Villa El Salvador", "Villa María del Triunfo"],
     "Callao": ["Bellavista", "Callao", "Carmen de la Legua", "La Perla", "La Punta", "Mi Perú", "Ventanilla"],
+    # Lima region, outside the metropolitan area: a daily commute from the city is long.
+    "Fuera de Lima Metropolitana": ["Chilca", "Chancay", "Huaral", "Huacho", "Cañete", "Mala"],
 }
 ZONE_OF = {d: z for z, ds in ZONES.items() for d in ds}
 ALIASES = {  # how postings write them -> canonical district

@@ -46,6 +46,11 @@ class Districts(unittest.TestCase):
         lugar = run(posting(title="Asistente - Sede Ate"))["lugar"]
         self.assertEqual((lugar["districts"], lugar["zones"], lugar["source"]), (["Ate"], ["Lima Este"], "aviso"))
 
+    def test_lima_region_outside_the_metropolitan_area_has_its_own_zone(self):
+        lugar = run(posting(description="Sede de Trabajo: Chilca (3 días) y V.E.S (2 días)"))["lugar"]
+        self.assertIn("Chilca", lugar["districts"])
+        self.assertIn("Fuera de Lima Metropolitana", lugar["zones"])
+
 
 class Place(unittest.TestCase):
     def test_portal_district_when_the_text_is_silent(self):
