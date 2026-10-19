@@ -67,6 +67,8 @@ export async function runDetail(opts: DetailOpts): Promise<number> {
         job.jobFunction ? `Function: ${job.jobFunction}` : "",
         job.industries ? `Industries: ${job.industries}` : "",
         `Status: ${job.isActive ? "ACTIVE" : "CLOSED / EXPIRED"}`,
+        job.postedAgo ? `Posted: ${job.postedAgo}${job.date ? ` (~${job.date})` : ""}` : "",
+        job.applicantsText ? `Applicants: ${job.applicantsText}` : "",
         "",
         job.description || "(no description)",
         "",

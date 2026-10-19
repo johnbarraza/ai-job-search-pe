@@ -293,6 +293,11 @@ describe("parseJobDetail", () => {
     expect(job.date).toBe("2026-07-25");
   });
 
+  test("'(actualizada)' marks the shown date as a renewal; no JSON-LD -> no expiry", () => {
+    expect(job.updated).toBe("2026-07-25");
+    expect(job.validThrough).toBeNull();
+  });
+
   test("applyUrl", () => {
     expect(job.applyUrl).toBe(
       "https://candidato.pe.computrabajo.com/match/?oi=8EC172F1E58E4B0261373E686DCF3405&p=57&idb=1",
@@ -303,6 +308,44 @@ describe("parseJobDetail", () => {
     expect(job.url).toBe(
       "https://pe.computrabajo.com/ofertas-de-trabajo/oferta-de-trabajo-de-x-8EC172F1E58E4B0261373E686DCF3405",
     );
+  });
+});
+
+// JSON-LD as served live (October 2026): the visible date is the renewal, the
+// JobPosting block carries the original publication date and the portal expiry.
+const JSONLD_DETAIL_HTML = DETAIL_HTML.replace(
+  "<p class=\"fc_aux fs13\">Hace  2  d&#xED;as (actualizada)</p>",
+  "<p class=\"fc_aux fs13\">10 de julio (actualizada)</p>",
+) + `
+<script type="application/ld+json">
+{"@context":"https://schema.org/","@graph":[{"@type":"Organization","name":"Computrabajo Per\\u00FA"},
+{"@context":"https://schema.org/","@type":"JobPosting","title":"Asistente de Gestion Humana",
+"datePosted": "2026-06-16","employmentType": "FULL_TIME","validThrough": "2026-08-15"}]}
+</script>`;
+
+describe("parseJobDetail: original publication vs renewal (JSON-LD)", () => {
+  const job = parseJobDetail(JSONLD_DETAIL_HTML, "X", new Date("2026-07-27T12:00:00Z"));
+
+  test("date is the JSON-LD datePosted, not the renewal shown on the page", () => {
+    expect(job.date).toBe("2026-06-16");
+  });
+
+  test("updated carries the renewal date", () => {
+    expect(job.updated).toBe("2026-07-10");
+  });
+
+  test("validThrough comes from the JSON-LD", () => {
+    expect(job.validThrough).toBe("2026-08-15");
+  });
+
+  test("a page without the renewal marker and an equal date reports no renewal", () => {
+    const plain = parseJobDetail(
+      JSONLD_DETAIL_HTML.replace("10 de julio (actualizada)", "16 de junio"),
+      "X",
+      new Date("2026-07-27T12:00:00Z"),
+    );
+    expect(plain.date).toBe("2026-06-16");
+    expect(plain.updated).toBeNull();
   });
 });
 
@@ -410,6 +453,14 @@ describe("normalizeRelativeDate", () => {
 
   test("strips a trailing '(actualizada)' suffix before parsing", () => {
     expect(normalizeRelativeDate("Ayer (actualizada)", now)).toBe("2026-07-26");
+  });
+
+  test("relative phrases count from the Lima calendar day, not the UTC one", () => {
+    // 02:00 UTC on 19 October is 21:00 on 18 October in Lima.
+    const lateEvening = new Date("2026-10-19T02:00:00Z");
+    expect(normalizeRelativeDate("Hoy", lateEvening)).toBe("2026-10-18");
+    expect(normalizeRelativeDate("Hace 7 horas", lateEvening)).toBe("2026-10-18");
+    expect(daysSince("2026-10-18", lateEvening)).toBe(0);
   });
 
   test("returns null for unparseable text", () => {

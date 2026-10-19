@@ -132,6 +132,58 @@ describe("parseJobDetail active-status detection", () => {
   });
 });
 
+describe("parseJobDetail age, repost and applicants", () => {
+  // Top-card captions as served live on guest pages (2026-10-18).
+  const page = (ago: string, applicants: string, description = "We are hiring!") => `
+    <h1 class="topcard__title">Practicante de Gestión Humana</h1>
+    <span class="posted-time-ago__text topcard__flavor--metadata">
+          ${ago}
+    </span>
+    <span class="num-applicants__caption topcard__flavor--metadata topcard__flavor--bullet">
+          ${applicants}
+    </span>
+    <div class="show-more-less-html__markup">${description}</div>`;
+  const now = new Date("2026-10-19T02:00:00Z"); // 21:00 on 18 Oct in Lima
+
+  test("relative age becomes a Lima-calendar date", () => {
+    const job = parseJobDetail(page("3 days ago", "143 applicants"), "1", now);
+    expect(job.postedAgo).toBe("3 days ago");
+    expect(job.date).toBe("2026-10-15");
+    expect(job.reposted).toBe(false);
+  });
+
+  test("weeks and Spanish phrasing are understood", () => {
+    expect(parseJobDetail(page("1 week ago", ""), "2", now).date).toBe("2026-10-11");
+    expect(parseJobDetail(page("hace 2 semanas", ""), "3", now).date).toBe("2026-10-04");
+  });
+
+  test("a 'Reposted' label sets reposted", () => {
+    const job = parseJobDetail(page("Reposted 2 weeks ago", "Over 200 applicants"), "4", now);
+    expect(job.reposted).toBe(true);
+    expect(job.date).toBe("2026-10-04");
+    expect(job.applicants).toBe(200);
+    expect(job.applicantsText).toBe("Over 200 applicants");
+  });
+
+  test("applicant counts: exact, and the 'first 25' caption carries no number", () => {
+    expect(parseJobDetail(page("1 week ago", "189 applicants"), "5", now).applicants).toBe(189);
+    const early = parseJobDetail(page("3 days ago", "Be among the first 25 applicants"), "6", now);
+    expect(early.applicants).toBeNull();
+    expect(early.applicantsText).toBe("Be among the first 25 applicants");
+  });
+
+  test("captions quoted in the description are not read", () => {
+    const job = parseJobDetail(
+      `<h1 class="topcard__title">X</h1>
+       <div class="show-more-less-html__markup"><span class="num-applicants__caption">999 applicants</span></div>`,
+      "7",
+      now,
+    );
+    expect(job.applicants).toBeNull();
+    expect(job.date).toBeNull();
+  });
+});
+
 describe("parseJobDetail dropped fields", () => {
   test("emits no applyUrl field", () => {
     // The extraction regex assumed class-before-href and never matched

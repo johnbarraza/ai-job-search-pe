@@ -66,6 +66,13 @@ bun run .agents/skills/linkedin-search/cli/src/cli.ts detail <id|url> [--format 
 LinkedIn `jobs/view/...` URL or a `urn:li:jobPosting:...` URN. Returns the full description,
 seniority, employment type, job function, and industries.
 
+Freshness fields from the top card: `postedAgo` ("1 week ago", "Reposted 3 days ago"),
+`date` derived from it on the Lima calendar (coarse: "1 week ago" spans 7-13 days; search
+cards carry the exact date), `reposted`, `applicants` (number; the lower bound for "Over 200
+applicants") with `applicantsText` verbatim, and `isActive`. The shown age is the latest
+(re)post; job ids are sequential, so `tools/pe_frescura.py` can date an old id reposted
+without the label.
+
 ## Usage examples
 
 ```bash

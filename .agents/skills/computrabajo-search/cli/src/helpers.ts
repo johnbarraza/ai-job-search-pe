@@ -123,6 +123,14 @@ export function modalityFromChip(chip: string | null): Modality {
 }
 
 export interface JobDetail extends JobCard {
+  /**
+   * Last renewal date, when the page marks the posting "(actualizada)": employers
+   * renew postings to push them back to the top of the search, and the search cards
+   * only ever show this renewal date. `date` on a detail is the original publication.
+   */
+  updated: string | null
+  /** Expiry the portal publishes in the page's JSON-LD (observed: datePosted + 60 days). */
+  validThrough: string | null
   description: string | null
   salary: string | null
   contractType: string | null
@@ -270,13 +278,24 @@ const MONTHS_ES: Record<string, number> = {
   noviembre: 10, diciembre: 11,
 }
 
+// Peru is UTC-5 all year (no DST). Relative phrases ("Hoy", "Hace 3 horas") mean
+// the Lima calendar day: counting from the UTC day dated every posting read after
+// 19:00 in Lima one day in the future.
+const LIMA_OFFSET_MS = 5 * 3600 * 1000
+
+/** Midnight (as a UTC timestamp) of the current Lima calendar day. */
+export function limaToday(now: Date = new Date()): number {
+  const lima = new Date(now.getTime() - LIMA_OFFSET_MS)
+  return Date.UTC(lima.getUTCFullYear(), lima.getUTCMonth(), lima.getUTCDate())
+}
+
 /**
- * Computrabajo never shows an absolute date on search cards or detail pages —
- * only relative Spanish phrases: "Hoy", "Ayer", "Hace N horas/días/semanas/meses",
- * or "D de <mes>" for older postings (year-less, same problem getonboard-search
- * solves with normalizeShortDate). Detail pages sometimes suffix "(actualizada)"
- * ("updated"), stripped before parsing. Returns an ISO YYYY-MM-DD date, or null if
- * the phrase doesn't match any known pattern.
+ * Computrabajo shows only relative Spanish phrases as visible dates: "Hoy", "Ayer",
+ * "Hace N horas/días/semanas/meses", or "D de <mes>" for older postings (year-less,
+ * same problem getonboard-search solves with normalizeShortDate). Detail pages
+ * suffix "(actualizada)" when the employer renewed the posting, stripped before
+ * parsing (see isRenewed). Returns an ISO YYYY-MM-DD date, or null if the phrase
+ * doesn't match any known pattern.
  */
 export function normalizeRelativeDate(text: string | null, now: Date = new Date()): string | null {
   if (!text) return null
@@ -287,7 +306,7 @@ export function normalizeRelativeDate(text: string | null, now: Date = new Date(
     .toLowerCase()
   if (!t) return null
 
-  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const todayUTC = limaToday(now)
   const daysAgoISO = (n: number) => new Date(todayUTC - n * 86400000).toISOString().slice(0, 10)
 
   if (t === "hoy") return daysAgoISO(0)
@@ -310,7 +329,7 @@ export function normalizeRelativeDate(text: string | null, now: Date = new Date(
     const day = parseInt(m[1], 10)
     const month = MONTHS_ES[m[2]]
     if (month === undefined || day < 1 || day > 31) return null
-    let year = now.getUTCFullYear()
+    let year = new Date(todayUTC).getUTCFullYear()
     let candidate = Date.UTC(year, month, day)
     if (candidate > todayUTC) {
       year -= 1
@@ -327,8 +346,24 @@ export function daysSince(iso: string | null, now: Date = new Date()): number | 
   if (!iso) return null
   const then = Date.parse(iso + "T00:00:00Z")
   if (isNaN(then)) return null
-  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  return Math.round((todayUTC - then) / 86400000)
+  return Math.round((limaToday(now) - then) / 86400000)
+}
+
+/** True when the visible date carries Computrabajo's "(actualizada)" renewal marker. */
+export function isRenewed(text: string | null): boolean {
+  return !!text && /\(actualizada\)/i.test(text)
+}
+
+/**
+ * Read one YYYY-MM-DD field from the page's schema.org JobPosting JSON-LD. The
+ * visible text never shows the original publication date or the expiry; the
+ * JSON-LD block carries both ("datePosted", "validThrough").
+ */
+export function jsonLdDate(html: string, field: "datePosted" | "validThrough"): string | null {
+  const block = html.match(/<script type="application\/ld\+json">([\s\S]*?"JobPosting"[\s\S]*?)<\/script>/)
+  if (!block) return null
+  const m = block[1].match(new RegExp(`"${field}"\\s*:\\s*"(\\d{4}-\\d{2}-\\d{2})`))
+  return m ? m[1] : null
 }
 
 /** Parse the real total-result count from the search page's <h1> badge, if present. */
@@ -511,8 +546,15 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     if (s) skills.push(s)
   }
 
+  // The visible date is the last renewal when marked "(actualizada)"; the original
+  // publication date comes from the JSON-LD and wins when present.
   const dateMatch = html.match(/<p class="fc_aux fs13">\s*([\s\S]*?)\s*<\/p>/)
-  const date = normalizeRelativeDate(dateMatch ? clean(dateMatch[1]) : null, now)
+  const shownText = dateMatch ? clean(dateMatch[1]) : null
+  const shown = normalizeRelativeDate(shownText, now)
+  const datePosted = jsonLdDate(html, "datePosted")
+  const date = datePosted ?? shown
+  const updated = isRenewed(shownText) || (shown && datePosted && shown > datePosted) ? shown : null
+  const validThrough = jsonLdDate(html, "validThrough")
 
   const applyMatch = html.match(/data-href-offer-apply="([^"]+)"/)
   const applyUrl = applyMatch ? decodeHtmlEntities(applyMatch[1]) : null
@@ -525,6 +567,8 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     location,
     date,
     url: `${BASE_URL}/ofertas-de-trabajo/oferta-de-trabajo-de-x-${id}`,
+    updated,
+    validThrough,
     description,
     salary,
     contractType,

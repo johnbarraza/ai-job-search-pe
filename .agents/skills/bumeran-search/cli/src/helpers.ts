@@ -100,6 +100,15 @@ export interface JobDetail extends JobCard {
   seniority: string | null
   category: string | null
   applyUrl: string | null
+  /** Last edit of the posting (fechaModificado), when later than the publication date. */
+  updated: string | null
+  /** Expiry the portal publishes (fechaFinalizacion): the plan's end, not an employer deadline. */
+  validThrough: string | null
+  /** Posting state as the API reports it (e.g. "activo"); anything else means closed or paused. */
+  status: string | null
+  vacancies: number | null
+  /** Contract type (tipoContratacion), e.g. "Temporal", "Indeterminado"; the text often omits it. */
+  contractType: string | null
 }
 
 /** Lowercase, strip diacritics, collapse to hyphens — matches Bumeran's own URL slugs. */
@@ -369,6 +378,11 @@ export interface RawAvisoDetail {
   empresa?: { denominacion?: string | null } | null
   localizacion?: { detalle?: string | null } | null
   fechaPublicacion?: string | null
+  fechaModificado?: string | null
+  fechaFinalizacion?: string | null
+  estado?: string | null
+  cantidadVacantes?: number | null
+  tipoContratacion?: { nombre?: string | null } | null
   tipoTrabajo?: { nombre?: string | null } | null
   modalidadTrabajo?: { nombre?: string | null } | null
   nivelLaboral?: { nombre?: string | null } | null
@@ -382,13 +396,17 @@ export function mapAvisoDetail(aviso: RawAvisoDetail): JobDetail {
   const id = String(aviso.id)
   const company = aviso.empresa?.denominacion || null
   const category = aviso.subArea?.nombre || aviso.area?.nombre || null
+  const date = normalizeDate(aviso.fechaPublicacion)
+  // Every edit bumps fechaModificado, often the same day it was published; only a
+  // later day says the employer came back to the posting.
+  const modified = normalizeDate(aviso.fechaModificado)
   return {
     id,
     title: aviso.titulo,
     company,
     companyUrl: null,
     location: aviso.localizacion?.detalle || null,
-    date: normalizeDate(aviso.fechaPublicacion),
+    date,
     url: aviso.seoFriendlyUrl ? `${BASE_URL}${aviso.seoFriendlyUrl}` : buildResultUrl(id, aviso.titulo, company),
     workMode: aviso.modalidadTrabajo?.nombre || null,
     modality: normalizeModality(aviso.modalidadTrabajo?.nombre),
@@ -398,5 +416,10 @@ export function mapAvisoDetail(aviso: RawAvisoDetail): JobDetail {
     seniority: aviso.nivelLaboral?.nombre || null,
     category,
     applyUrl: aviso.redireccionURL || null,
+    updated: modified && date && modified > date ? modified : null,
+    validThrough: normalizeDate(aviso.fechaFinalizacion),
+    status: aviso.estado || null,
+    vacancies: typeof aviso.cantidadVacantes === "number" ? aviso.cantidadVacantes : null,
+    contractType: aviso.tipoContratacion?.nombre || null,
   }
 }

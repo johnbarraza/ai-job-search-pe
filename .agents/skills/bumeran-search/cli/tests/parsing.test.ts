@@ -198,6 +198,42 @@ describe("mapAvisoDetail", () => {
     expect(job.url).toBe("https://www.bumeran.com.pe/empleos/qa-engineer-acme-999.html");
     expect(job.applyUrl).toBeNull();
   });
+
+  test("freshness fields: expiry, state, vacancies, contract type; later edit is an update", () => {
+    // Field shapes as served live (October 2026) by fichaAvisoNormalizada.
+    const job = mapAvisoDetail({
+      id: 1118384615,
+      titulo: "Asistente de Reclutamiento y Selección",
+      descripcion: null,
+      fechaPublicacion: "13-10-2026",
+      fechaModificado: "16-10-2026 10:06:27",
+      fechaFinalizacion: "11-01-2027",
+      estado: "activo",
+      cantidadVacantes: 1,
+      tipoContratacion: { nombre: "Temporal" },
+    });
+    expect(job.date).toBe("2026-10-13");
+    expect(job.updated).toBe("2026-10-16");
+    expect(job.validThrough).toBe("2027-01-11");
+    expect(job.status).toBe("activo");
+    expect(job.vacancies).toBe(1);
+    expect(job.contractType).toBe("Temporal");
+  });
+
+  test("an edit on the publication day is not an update; absent fields are null", () => {
+    const job = mapAvisoDetail({
+      id: 1,
+      titulo: "Analista",
+      descripcion: null,
+      fechaPublicacion: "15-10-2026",
+      fechaModificado: "15-10-2026 13:11:22",
+    });
+    expect(job.updated).toBeNull();
+    expect(job.validThrough).toBeNull();
+    expect(job.status).toBeNull();
+    expect(job.vacancies).toBeNull();
+    expect(job.contractType).toBeNull();
+  });
 });
 
 describe("mapSearchItem: confidential postings", () => {

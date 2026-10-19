@@ -1,5 +1,5 @@
 ---
-framework_version: 1.2.1
+framework_version: 1.3.0
 ---
 
 # Mercado laboral peruano (fork Perú)
@@ -71,6 +71,15 @@ Notas:
 - **Prácticas en el Estado** se rigen por el D. Leg. 1401 (no por la Ley 28518) y también se
   publican en Talento Perú. Las prácticas profesionales en el sector público solo pueden
   hacerse dentro de los 12 meses siguientes a obtener la condición de egresado.
+- **INEI (censos, encuestas, trabajo de campo).** Su página de convocatorias
+  (`inei.gob.pe/usuarios/convocatoria-de-personal/`) carga la lista con JavaScript, así que
+  una lectura simple la ve vacía. La misma página la pide a
+  `/usuarios/convocatoria-de-personal/datos-cas/<página>/<cantidad>/?tipo=C&year=<año>`
+  (`tipo` = `C` CAS, `PPRE`/`PPRO` prácticas) y a `.../datos-locador/<página>/<cantidad>/`
+  (locaciones de servicio de campo: encuestadores, supervisores, aplicadores; responde JSON
+  con `cargo`, `periodo_inicio`, `peridodo_fin` y `estado`, donde `1` es abierto). Ahí aparecen
+  primero las convocatorias de encuestas (ENAHO, ENDES, ENCAL) y evaluaciones, que los
+  agregadores replican tarde.
 
 ## 3. CV para el mercado peruano
 
@@ -248,6 +257,39 @@ público y regulatorio.
 - **Postulación:** cada programa tiene su formulario y documentos (constancia de tercio
   superior, constancia de egreso o de matrícula, a veces carta de presentación o CV). `/apply`
   puede preparar el CV de una página y la carta si las bases los piden.
+
+## 10. Frescura de la oferta y ghost jobs
+
+En Perú la mayoría de procesos privados arma su terna en los **primeros días** del aviso, y
+muchos avisos siguen publicados cuando la plaza ya se cubrió, cuando la consultora junta un
+pool permanente de CVs o cuando nadie se acordó de bajarlos ("ghost jobs"). La fecha que
+muestra cada portal **no es la edad del aviso**:
+
+| Portal | Qué fecha muestra la búsqueda | Dónde está la fecha real | Otras señales en `detail` |
+|---|---|---|---|
+| Computrabajo | La última **renovación**: el empleador "actualiza" el aviso para volver arriba. En una búsqueda real de octubre de 2026, los 20 avisos de la página parecían de "hace horas" | JSON-LD de la página: `date` (= `datePosted`) | `updated` (renovación), `validThrough` (vencimiento del portal: publicación + 60 días) |
+| Bumeran | `fechaPublicacion`, que el empleador puede reiniciar al republicar | Los ids son secuenciales: un id muy bajo para su fecha delata un aviso antiguo | `updated`, `validThrough` (fin del plan), `status`, `vacancies`, `contractType` (a veces "Temporal" aunque el texto no lo diga) |
+| LinkedIn | La fecha del último *repost* | Ids secuenciales, igual que Bumeran | `postedAgo`, `reposted`, `applicants` ("189 applicants"), `isActive` |
+
+Reglas:
+- **Edad desde la publicación original**, nunca desde la renovación. ≤ 7 días: *fresca*
+  (postula ya); 8 a 21: *en curso*; 22 a 45: *vieja*; más de 45: *muy vieja*.
+- **El vencimiento del portal no es una fecha de cierre.** `validThrough` sale del plan
+  contratado (60 días en Computrabajo, ~90 en Bumeran); solo es una fecha límite real cuando
+  la oferta la escribe o en una convocatoria pública (cronograma de las bases). Nunca la
+  guardes como `deadline`.
+- **Señales de ghost job:** aviso cerrado o vencido en el portal; más de 45 días de edad;
+  republicado (LinkedIn *reposted* o id antiguo para su fecha); mismo título y empresa
+  publicados varias veces; más de 200 postulantes en LinkedIn. Una renovación sola **no**
+  sube el riesgo: también puede significar que siguen buscando.
+- **Con riesgo medio o alto, confirma antes de invertir tiempo:** escribe al reclutador o a la
+  empresa, o busca en LinkedIn si ya contrataron a alguien para ese puesto. Una carta a medida
+  va primero a las ofertas frescas.
+- **Herramienta:** guarda el `detail --format json` de cada oferta preseleccionada y corre
+  `python tools/pe_frescura.py <detalles.json> --calibrar <búsquedas.json> job_scraper/seen_jobs.json`.
+  Ordena por riesgo, explica cada señal y estima la fecha de creación de los ids de Bumeran y
+  LinkedIn con los pares (id, fecha) de la propia búsqueda. Es una señal para priorizar, no un
+  juicio sobre el empleador.
 
 ## Fuentes (consultadas 2026-10-15)
 

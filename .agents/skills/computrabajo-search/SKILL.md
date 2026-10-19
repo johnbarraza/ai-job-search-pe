@@ -93,7 +93,15 @@ bun run .agents/skills/computrabajo-search/cli/src/cli.ts detail <id|url> [--for
 `id` is the 32-character hex ID from `search` results (e.g.
 `A1159FCAE890A3F861373E686DCF3405`); a full pe.computrabajo.com posting URL also works.
 Returns the full description, requirements, skills, salary / contract / schedule /
-workplace chips, posting date, and the apply link.
+workplace chips, dates, and the apply link.
+
+Dates: a search card shows only the posting's **last renewal** (employers "actualizan" a
+posting to push it back to the top), so `--jobage` filters by renewal, not publication. The
+detail page's JSON-LD has the real dates: `date` is the original publication
+(`datePosted`), `updated` the renewal when the page marks it "(actualizada)", and
+`validThrough` the portal's expiry (publication + 60 days, not an employer deadline).
+Relative dates ("Hoy", "Hace 3 horas") count on the Lima calendar (UTC-5). See
+`10-peru-market.md` section 10 and `tools/pe_frescura.py`.
 
 ## Usage examples
 

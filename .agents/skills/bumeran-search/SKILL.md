@@ -88,6 +88,13 @@ bumeran.com.pe posting URL also works. Returns the HTML description as clean tex
 seniority, employment type, work mode, area/sub-area, and `applyUrl` when the employer
 redirects to its own ATS (`null` means apply on Bumeran itself).
 
+Freshness fields: `date` (fechaPublicacion, which an employer can reset by republishing),
+`updated` (fechaModificado, only when later than the publication day), `validThrough`
+(fechaFinalizacion: the end of the publication plan, not an employer deadline), `status`
+(`"activo"` while open), `vacancies` and `contractType` (e.g. `"Temporal"`, often missing
+from the text). Aviso ids are sequential, so an id far below its peers' for the same date
+marks an old aviso republished; `tools/pe_frescura.py` estimates that date.
+
 ## Usage examples
 
 ```bash

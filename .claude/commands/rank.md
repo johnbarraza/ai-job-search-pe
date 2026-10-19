@@ -119,6 +119,18 @@ Back in the main context, for each scored job:
    treated exactly like an absent one and reported once in the Step 5 summary with its
    portal.
 
+8. **Freshness and ghost-job risk (Peru fork).** A stored `posted_date` is the date the
+   search showed, and for Computrabajo that is the last renewal, for Bumeran and LinkedIn
+   possibly a republication - rule 7 alone understates age. For every job in the
+   shortlist (Strong and Good Fit), save its CLI `detail --format json` output, which
+   carries the original publication date, renewal, portal expiry, closed state and (on
+   LinkedIn) applicants, and run
+   `python tools/pe_frescura.py <detail files> --calibrar job_scraper/seen_jobs.json --json`.
+   Show its `risk` (bajo / medio / alto), `window` and the age from the original
+   publication next to the score; a `medio` or `alto` risk carries a visible ⚠ with the
+   tool's signals, same treatment as a location FLAG. Like rule 7, it is a signal, never a
+   veto. Rules and thresholds: `10-peru-market.md`, section 10.
+
 Sort by overall score (descending), urgency as tiebreaker.
 
 ---

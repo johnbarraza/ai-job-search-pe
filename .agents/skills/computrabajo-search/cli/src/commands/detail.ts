@@ -30,6 +30,8 @@ export async function runDetail(opts: DetailOpts): Promise<number> {
         `Modalidad: ${job.modality}${job.workplaceType ? ` (${job.workplaceType})` : ""}`,
         `Nivel: ${job.level}`,
         job.date ? `Posted: ${job.date}` : "",
+        job.updated ? `Renewed: ${job.updated}` : "",
+        job.validThrough ? `Valid through: ${job.validThrough} (portal expiry, not an employer deadline)` : "",
         job.skills.length ? `Skills: ${job.skills.join(", ")}` : "",
         "",
         job.description || "(no description)",

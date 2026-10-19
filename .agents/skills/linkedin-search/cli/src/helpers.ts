@@ -64,6 +64,54 @@ export interface JobDetail extends JobCard {
   jobFunction: string | null
   industries: string | null
   isActive: boolean
+  /** The top card's relative age as shown ("1 week ago", "Reposted 3 days ago"); `date` is derived from it. */
+  postedAgo: string | null
+  /** True when LinkedIn labels the posting "Reposted": the role was published before and put up again. */
+  reposted: boolean
+  /** Applicant count shown on the top card; for "Over 200 applicants" the lower bound (200). */
+  applicants: number | null
+  /** The applicant caption verbatim ("189 applicants", "Be among the first 25 applicants"). */
+  applicantsText: string | null
+}
+
+// Peru is UTC-5 all year (no DST): relative ages count from the Lima calendar day.
+const LIMA_OFFSET_MS = 5 * 3600 * 1000
+
+/**
+ * Turn the guest page's relative age ("3 days ago", "Reposted 2 weeks ago", or the
+ * Spanish "hace 3 días" / "Publicado de nuevo hace 2 semanas") into an ISO date on
+ * the Lima calendar. Weeks and months are coarse - "1 week ago" covers 7 to 13
+ * days - so the date is an estimate; search cards carry the exact `datetime`.
+ */
+export function postedAgoToDate(text: string | null, now: Date = new Date()): string | null {
+  if (!text) return null
+  const t = text.toLowerCase()
+  const m =
+    t.match(/(\d+)\s+(minute|hour|day|week|month|year)s?\s+ago/) ||
+    t.match(/hace\s+(\d+)\s+(minuto|hora|d[ií]a|semana|mes|año)/)
+  if (!m) return null
+  const n = parseInt(m[1], 10)
+  const unit = m[2]
+  const days = /^(minut|hour|hora)/.test(unit)
+    ? 0
+    : /^(day|d[ií]a)/.test(unit)
+      ? n
+      : /^(week|semana)/.test(unit)
+        ? n * 7
+        : /^(month|mes)/.test(unit)
+          ? n * 30
+          : n * 365
+  const lima = new Date(now.getTime() - LIMA_OFFSET_MS)
+  const today = Date.UTC(lima.getUTCFullYear(), lima.getUTCMonth(), lima.getUTCDate())
+  return new Date(today - days * 86400000).toISOString().slice(0, 10)
+}
+
+/** Applicant count from the top-card caption; null for "Be among the first 25" and unknown shapes. */
+export function parseApplicants(text: string | null): number | null {
+  if (!text) return null
+  if (/first|primer/i.test(text)) return null
+  const m = text.replace(/[.,](?=\d{3}\b)/g, "").match(/(\d+)/)
+  return m ? parseInt(m[1], 10) : null
 }
 
 /**
@@ -192,7 +240,7 @@ export function parseJobCards(html: string): JobCard[] {
 }
 
 /** Parse the single-job detail page. */
-export function parseJobDetail(html: string, id: string): JobDetail {
+export function parseJobDetail(html: string, id: string, now: Date = new Date()): JobDetail {
   const title = html.match(
     /class="(?:top-card-layout__title|topcard__title)[^"]*"[^>]*>([\s\S]*?)<\/h[12]>/i,
   )?.[1]
@@ -243,13 +291,24 @@ export function parseJobDetail(html: string, id: string): JobDetail {
   const topcard = descStart === -1 ? html : html.slice(0, descStart)
   const isActive = !/closed-job__flavor|no longer accepting applications/i.test(topcard)
 
+  // Top-card age and applicant captions, e.g.
+  //   <span class="posted-time-ago__text topcard__flavor--metadata">1 week ago</span>
+  //   <span class="num-applicants__caption topcard__flavor--metadata ...">189 applicants</span>
+  // (verified against live guest pages, 2026-10-18). Read from the top card only.
+  const caption = (cls: string): string | null => {
+    const m = topcard.match(new RegExp(`<(\\w+) class="${cls}[^"]*"[^>]*>([\\s\\S]*?)</\\1>`, "i"))
+    return m ? clean(m[2]) || null : null
+  }
+  const postedAgo = caption("posted-time-ago__text")
+  const applicantsText = caption("num-applicants__caption")
+
   return {
     id,
     title: title ? clean(title) : "(untitled)",
     company,
     companyUrl,
     location,
-    date: null,
+    date: postedAgoToDate(postedAgo, now),
     url: `https://www.linkedin.com/jobs/view/${id}`,
     description,
     seniority: criteria["seniority level"] ?? null,
@@ -257,6 +316,10 @@ export function parseJobDetail(html: string, id: string): JobDetail {
     jobFunction: criteria["job function"] ?? null,
     industries: criteria["industries"] ?? null,
     isActive,
+    postedAgo,
+    reposted: !!postedAgo && /reposted|publicado de nuevo|volvi[oó] a publicar/i.test(postedAgo),
+    applicants: parseApplicants(applicantsText),
+    applicantsText,
   }
 }
 

@@ -220,6 +220,8 @@ The `source` field records which mechanism produced the entry: `cli` for Step 1b
 
 `posted_date` is the posting's own publication date, taken from the `date` field Step 2's contract already guarantees on every portal CLI's search output. Step 1b uses that date to scope the run to the last 14 days and then drops it, so nothing downstream can distinguish a posting published yesterday from one published two years ago - `first_seen` is when this scraper first saw the entry, not when the employer posted it. Persisting it makes Step 1b's window auditable after the run and gives `/rank` a freshness signal to weigh, instead of rediscovering the date and recording it in prose that nothing reads. That gap landed for real: a freehire-search posting dated 2024-05-13 was scraped and ranked Strong Fit at position 1 of 133, its own scoring note observing the listing "may be long stale" with nothing able to act on it. `null` means the portal returned no date for that result (the CLIs emit `date: null` when a listing omits it); a missing key means the entry predates this field - **never infer a posting date** from either, and never backfill by guessing.
 
+Peru fork: on Computrabajo the search card's date is the posting's **last renewal**, not its publication (`detail` reads the original from the page's JSON-LD), and Bumeran and LinkedIn republish old postings under a new date. Store the search date as above, and leave the freshness verdict to `/rank` rule 8 and `tools/pe_frescura.py` (`10-peru-market.md`, section 10).
+
 3. Only present jobs NOT already in the seen list (matched by URL or
    company+title) or tracker.
 
