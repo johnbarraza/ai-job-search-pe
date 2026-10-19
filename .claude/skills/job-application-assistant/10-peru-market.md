@@ -1,5 +1,5 @@
 ---
-framework_version: 1.4.1
+framework_version: 1.5.0
 ---
 
 # Mercado laboral peruano (fork Perú)
@@ -230,6 +230,15 @@ El tiempo de traslado en Lima pesa más que la distancia. Para el criterio de ub
   `bumeran-search -l "SJL"`.
 - Para ofertas híbridas, el número de días presenciales cambia mucho el costo real del
   traslado: si la oferta no lo dice, es una pregunta para la entrevista.
+- **Lugar y rubro de cada oferta:** `python tools/pe_contexto.py <detalles.json> --json >
+  reports/contexto.json`. Devuelve el distrito y la zona (Lima Norte, Centro, Moderna, Este,
+  Sur, Callao) y el rubro del empleador. Cada dato trae su fuente (aviso, portal, sede del
+  cliente, web, nombre) y una confianza (alta, media, baja). "Residir en ..." es un requisito,
+  no el lugar de trabajo. Si quien publica es una consultora que intermedia personal, el lugar
+  es la sede del cliente que nombra el aviso. Lo encontrado en la web va en
+  `company_research/<empresa>.json`, campo `context` (`offices`, `sector`, `website`,
+  `linkedin`), siempre con su URL de fuente. La página de `pe_revision.py` lo muestra como
+  chips, con un botón de mapa.
 
 ## 9. Programas de extensión universitaria y cursos de extensión
 

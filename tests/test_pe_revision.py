@@ -128,6 +128,46 @@ class Cli(unittest.TestCase):
             self.assertNotIn("<script src", page)
 
 
+class ContextAndSorting(unittest.TestCase):
+    CTX = {
+        "url": BM_DETAIL,
+        "lugar": {"districts": ["Santiago de Surco"], "zones": ["Lima Moderna"], "source": "portal", "confidence": "media",
+                  "residence_required": [], "remote": False},
+        "rubro": {"label": "Consultora de Recursos Humanos", "source": "portal", "confidence": "media",
+                  "staffing": True, "for_client": False, "anonymous": False},
+        "links": {"computrabajo": "https://pe.computrabajo.com/adecco", "linkedin": "javascript:alert(1)"},
+    }
+
+    def test_place_and_sector_render_as_chips_with_readable_evidence_and_a_map(self):
+        html = pr.context_html(self.CTX)
+        self.assertIn('<span class="chip place">Santiago de Surco</span>', html)
+        self.assertIn('<span class="chip zone">Lima Moderna</span>', html)
+        self.assertIn('<span class="chip kind">Consultora</span>', html)
+        self.assertIn("dato del portal", html)
+        self.assertIn("●●○", html)
+        self.assertIn("https://www.google.com/maps/search/?api=1&amp;query=Santiago+de+Surco%2C+Lima%2C+Per%C3%BA", html)
+        self.assertIn(">Computrabajo</a>", html)
+        self.assertNotIn("javascript:", html)  # a non-http link from the cache never becomes a button
+
+    def test_remote_postings_get_no_map(self):
+        ctx = dict(self.CTX, lugar=dict(self.CTX["lugar"], remote=True))
+        self.assertNotIn("maps", pr.context_html(ctx))
+        self.assertIn('<span class="chip kind">Remoto</span>', pr.context_html(ctx))
+
+    def test_rows_carry_sort_keys_and_headers_are_sort_buttons(self):
+        seen = {"k": ranked(rank_score=71)}
+        fresh = [{"url": BM_DETAIL, "risk": "bajo", "window": "fresca", "age_days": 3, "signals": []}]
+        research = Path(tempfile.mkdtemp())
+        (research / pr.company_file("Acme")).write_text(json.dumps({"sources": {"reviews": {"ratings": [{"source": "Computrabajo", "rating": 4.2, "n": 300}]}}}), encoding="utf-8")
+        page = pr.render(pr.collect({"seen": seen}, fresh, research, [self.CTX]), date(2026, 10, 18), None)
+        self.assertIn('data-s-encaje="71"', page)
+        self.assertIn('data-s-frescura="3"', page)
+        self.assertIn('data-s-reputacion="4.2"', page)
+        for key in ("accion", "encaje", "puesto", "frescura", "reputacion"):
+            self.assertIn(f'data-sort="{key}"', page)
+        self.assertIn("chip place", page)
+
+
 class ArtifactMode(unittest.TestCase):
     def test_artifact_mode_drops_the_wrapper_and_declares_the_gutter(self):
         data = pr.collect({"seen": {"k": ranked()}}, [], Path(tempfile.mkdtemp()))

@@ -137,8 +137,9 @@ def find_districts(text: str) -> dict[str, list[str]]:
                 continue  # "San Juan de Lurigancho" already claimed "Lurigancho"
             for i in range(m.start(), m.end()):
                 taken[i] = True
-            before = plain[max(0, m.start() - 45):m.start()]
-            after = plain[m.end():m.end() + 25]
+            # Cues count only within the district's own sentence.
+            before = re.split(r"[.;\n!?]", plain[max(0, m.start() - 45):m.start()])[-1]
+            after = re.split(r"[.;\n!?]", plain[m.end():m.end() + 25])[0]
             if HOME_CUE.search(before) and not WORK_CUE.search(before[-15:]):
                 kind = "home"
             elif WORK_CUE.search(before) or WORK_CUE.search(after):
@@ -251,7 +252,26 @@ def analyze(posting: dict, research_dir: Path) -> dict:
     return {
         "id": posting.get("id"), "url": posting.get("url"), "company": company, "title": title,
         "portal": pe_frescura.portal_of(posting.get("url") or ""), "lugar": lugar, "rubro": rubro,
+        "links": company_links(posting, web, anonymous),
     }
+
+
+def company_links(posting: dict, web: dict, anonymous: bool) -> dict:
+    """Where to read about the employer: its own site (from the research cache only, never
+    guessed), its LinkedIn page and its Computrabajo profile when the portal gives them."""
+    links = {}
+    url = posting.get("companyUrl") or ""
+    if re.match(r"^https?://([a-z]+\.)?linkedin\.com/company/", url):
+        links["linkedin"] = url
+    elif re.match(r"^https?://pe\.computrabajo\.com/", url):
+        links["computrabajo"] = url
+    for key in ("website", "linkedin"):
+        value = web.get(key)
+        if isinstance(value, str) and re.match(r"^https?://", value):
+            links[key] = value
+    if anonymous:
+        links.pop("computrabajo", None)  # an anonymous posting's link is the portal's, not a company's
+    return links
 
 
 def main(argv=None) -> int:

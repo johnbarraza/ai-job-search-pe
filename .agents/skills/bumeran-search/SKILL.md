@@ -93,7 +93,8 @@ Freshness fields: `date` (fechaPublicacion, which an employer can reset by repub
 (fechaFinalizacion: the end of the publication plan, not an employer deadline), `status`
 (`"activo"` while open), `vacancies` and `contractType` (e.g. `"Temporal"`, often missing
 from the text). Aviso ids are sequential, so an id far below its peers' for the same date
-marks an old aviso republished; `tools/pe_frescura.py` estimates that date.
+marks an old aviso republished; `tools/pe_frescura.py` estimates that date. Employer fields:
+`industry` (empresa.industria), `companySize` (rangoEmpleados) and `address` (rarely filled in).
 
 ## Usage examples
 

@@ -29,6 +29,7 @@ import sys
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from urllib.parse import quote_plus
 
 ROOT = Path(__file__).resolve().parent.parent
 _spec = importlib.util.spec_from_file_location("pe_frescura", ROOT / "tools" / "pe_frescura.py")
@@ -153,32 +154,73 @@ def bullets(items) -> str:
     return "<ul>" + "".join(f"<li>{esc(i)}</li>" for i in items) + "</ul>" if items else '<span class="dim">—</span>'
 
 
+# How each source reads to a person, and confidence as filled dots (tools/pe_contexto.py).
+SOURCE_TEXT = {
+    "aviso": "lo dice el aviso", "aviso + portal": "aviso y portal coinciden", "portal": "dato del portal",
+    "aviso (sede del cliente)": "sede del cliente, según el aviso", "web": "buscado en la web", "nombre": "deducido del nombre",
+}
+CONF_DOTS = {"alta": ("●●●", "confianza alta"), "media": ("●●○", "confianza media"), "baja": ("●○○", "confianza baja")}
+
+
+def maps_url(query: str) -> str:
+    return "https://www.google.com/maps/search/?api=1&query=" + quote_plus(query)
+
+
+def _evidence(source, confidence) -> str:
+    """'dato del portal ●●○' with the full wording in the tooltip."""
+    if not source:
+        return ""
+    dots, label = CONF_DOTS.get(confidence or "", ("", ""))
+    text = SOURCE_TEXT.get(source, source)
+    title = f"{text}; {label}" if label else text
+    return (f'<span class="ev" title="{esc(title)}">{esc(text)}'
+            + (f' <span class="dots conf-{esc(confidence)}" aria-label="{esc(label)}">{dots}</span>' if dots else "")
+            + "</span>")
+
+
 def context_html(ctx: dict | None) -> str:
-    """Workplace and employer sector, each with its source and confidence (tools/pe_contexto.py)."""
+    """Workplace and employer sector as chips, each with where the data came from and how sure it is."""
     if not ctx:
         return ""
-    lg, rb = ctx.get("lugar") or {}, ctx.get("rubro") or {}
+    lg, rb, links = ctx.get("lugar") or {}, ctx.get("rubro") or {}, ctx.get("links") or {}
+    districts = lg.get("districts") or []
 
-    def tag(src, conf):
-        return f' <span class="tag">{esc(src)}{" · " + esc(conf) if conf else ""}</span>' if src else ""
-
-    where = ", ".join(lg.get("districts") or [])
-    zones = ", ".join(lg.get("zones") or [])
+    chips = []
     if lg.get("remote"):
-        where = "remoto" + (f" (mencionan {where})" if where else "")
-    place = (f'Lugar: {esc(where)}{" · " + esc(zones) if zones and not lg.get("remote") else ""}'
-             + tag(lg.get("source"), lg.get("confidence"))) if where else '<span class="dim">Lugar: sin dato</span>'
+        chips.append('<span class="chip kind">Remoto</span>')
+    chips += [f'<span class="chip place">{esc(d)}</span>' for d in districts]
+    if not lg.get("remote"):
+        chips += [f'<span class="chip zone">{esc(z)}</span>' for z in lg.get("zones") or []]
+    if not chips:
+        chips.append('<span class="chip muted">Lugar sin dato</span>')
+    place = '<div class="ctx-row"><span class="ctx-k">Lugar</span>' + "".join(chips) + _evidence(lg.get("source"), lg.get("confidence")) + "</div>"
+    notes = []
     if lg.get("address"):
-        place += f'<br><span class="dim">{esc(lg["address"])}</span>'
+        notes.append(esc(lg["address"]))
     if lg.get("residence_required"):
-        place += f'<br><span class="dim">Pide residir en o cerca de {esc(", ".join(lg["residence_required"]))}</span>'
-    flags = [x for x, on in (("consultora", rb.get("staffing")), ("recluta para un cliente", rb.get("for_client")),
-                              ("empresa anónima", rb.get("anonymous"))) if on]
-    sector = (f'Rubro: {esc(rb["label"])}' + tag(rb.get("source"), rb.get("confidence"))) if rb.get("label") \
-        else '<span class="dim">Rubro: sin identificar</span>'
-    if flags:
-        sector += f' <span class="dim">· {esc(" · ".join(flags))}</span>'
-    return f'<div class="ctx">{place}<br>{sector}</div>'
+        notes.append("Pide vivir en o cerca de " + esc(", ".join(lg["residence_required"])))
+    if notes:
+        place += '<div class="ctx-note">' + "<br>".join(notes) + "</div>"
+
+    kinds = [label for label, on in (("Consultora", rb.get("staffing")), ("Recluta para un cliente", rb.get("for_client")),
+                                     ("Empresa anónima", rb.get("anonymous"))) if on]
+    sector_chips = ([f'<span class="chip sector">{esc(rb["label"])}</span>'] if rb.get("label")
+                    else ['<span class="chip muted">Rubro sin identificar</span>'])
+    sector_chips += [f'<span class="chip kind">{esc(k)}</span>' for k in kinds]
+    sector = ('<div class="ctx-row"><span class="ctx-k">Rubro</span>' + "".join(sector_chips)
+              + _evidence(rb.get("source"), rb.get("confidence")) + "</div>")
+
+    buttons = []
+    if not lg.get("remote") and (lg.get("address") or districts):
+        query = lg.get("address") or f"{districts[0]}, Lima, Perú"
+        if lg.get("address") and districts:
+            query = f"{lg['address']}, {districts[0]}, Lima"
+        buttons.append(f'<a class="btn" href="{esc(maps_url(query))}" target="_blank" rel="noopener noreferrer">Mapa</a>')
+    for key, label in (("website", "Web"), ("linkedin", "LinkedIn"), ("computrabajo", "Computrabajo")):
+        if isinstance(links.get(key), str) and re.match(r"^https?://", links[key]):  # the file may be hand-edited
+            buttons.append(f'<a class="btn" href="{esc(links[key])}" target="_blank" rel="noopener noreferrer">{label}</a>')
+    actions = f'<div class="ctx-btns">{"".join(buttons)}</div>' if buttons else ""
+    return f'<div class="ctx">{place}{sector}{actions}</div>'
 
 
 def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_rows: list[dict] | None = None) -> dict:
@@ -218,7 +260,7 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
 
 _DARK = """--bg:#11151b;--card:#1a2029;--ink:#e6eaf0;--dim:#9aa6b5;--line:#2c3440;
 --accent:#9cc1ea;--go:#4ade80;--go-bg:#14321f;--warn:#fbbf24;--warn-bg:#3a2e10;--stop:#f87171;--stop-bg:#3b1717;
---muted-bg:#2a313c;--out:#9aa6b5;color-scheme:dark"""
+--muted-bg:#2a313c;--out:#9aa6b5;--chip-place:#1d3a5c;--chip-sector:#23303f;color-scheme:dark"""
 
 # Light tokens on :root; dark ones under prefers-color-scheme (unless the host forces light)
 # and again under data-theme="dark", so a host theme toggle wins both ways.
@@ -226,7 +268,7 @@ CSS = """
 /* Layout: the five workflow steps as a strip, then one scannable table per decision. */
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2430;--dim:#5f6b7a;--line:#dfe3e8;--accent:#1f3550;
 --go:#15803d;--go-bg:#dcfce7;--warn:#a16207;--warn-bg:#fef3c7;--stop:#b91c1c;--stop-bg:#fee2e2;
---muted-bg:#e5e7eb;--out:#6b7280}
+--muted-bg:#e5e7eb;--out:#6b7280;--chip-place:#dbe8f6;--chip-sector:#eef1f5}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){""" + _DARK + """}}
 :root[data-theme="dark"]{""" + _DARK + """}
 [hidden]{display:none!important}
@@ -254,7 +296,28 @@ td ul{margin:0;padding-left:16px}td li{margin:0 0 2px}
 .risk{font-weight:700;text-transform:uppercase;font-size:11px}.risk.bajo{color:var(--go)}.risk.medio{color:var(--warn)}.risk.alto{color:var(--stop)}
 .score{font-size:18px;font-weight:700}.tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--dim)}
 .signals{color:var(--dim);font-size:12px}tr.done{opacity:.55}
-.ctx{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:12px}
+.ctx{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;display:grid;gap:5px}
+.ctx-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.ctx-k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;min-width:44px}
+.chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;line-height:1.6;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.chip.place{background:var(--chip-place);border-color:transparent;font-weight:600}
+.chip.zone{color:var(--dim)}
+.chip.sector{background:var(--chip-sector);border-color:transparent}
+.chip.kind{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.chip.muted{color:var(--dim);border-style:dashed}
+.ev{font-size:11px;color:var(--dim);margin-left:2px}
+.dots{letter-spacing:1px}.dots.conf-alta{color:var(--go)}.dots.conf-media{color:var(--warn)}.dots.conf-baja{color:var(--stop)}
+.ctx-note{color:var(--dim);font-size:11px;padding-left:48px}
+.ctx-btns{display:flex;flex-wrap:wrap;gap:6px;padding-left:48px}
+.btn{display:inline-block;padding:2px 10px;border:1px solid var(--accent);border-radius:6px;font-size:12px;text-decoration:none;color:var(--accent)}
+.btn:hover{background:var(--accent);color:var(--card)}
+.btn:focus-visible,button.sort:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.sort{all:unset;cursor:pointer;font:inherit;color:inherit;display:inline-flex;align-items:center;gap:4px}
+button.sort:hover{color:var(--accent)}
+.arrow::after{content:"↕";opacity:.45;font-size:11px}
+th[aria-sort="ascending"] .arrow::after{content:"▲";opacity:1}
+th[aria-sort="descending"] .arrow::after{content:"▼";opacity:1}
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:12px;color:var(--dim);margin:6px 0 2px}
 details{margin:12px 0}summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .wrap{overflow-x:auto;min-width:0}.wrap table{min-width:960px}
 @media (max-width:900px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -282,6 +345,23 @@ JS = """
     });
   }
   [q,fa,fm,fr,fz].forEach(function(el){el.addEventListener('input',apply);el.addEventListener('change',apply);});
+  // Sortable headers: first click sorts best first, the next one reverses.
+  document.querySelectorAll('button.sort').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var th=btn.closest('th'),table=btn.closest('table'),tbody=table.tBodies[0],key=btn.dataset.sort;
+      var cur=th.getAttribute('aria-sort');
+      var dir=cur==='none'?(btn.dataset.first==='asc'?'ascending':'descending'):(cur==='ascending'?'descending':'ascending');
+      table.querySelectorAll('thead th[aria-sort]').forEach(function(o){o.setAttribute('aria-sort','none');});
+      th.setAttribute('aria-sort',dir);
+      var rows=Array.prototype.slice.call(tbody.rows),sign=dir==='ascending'?1:-1;
+      rows.sort(function(a,b){
+        var x=a.getAttribute('data-s-'+key),y=b.getAttribute('data-s-'+key),nx=parseFloat(x),ny=parseFloat(y);
+        var c=(!isNaN(nx)&&!isNaN(ny))?nx-ny:String(x).localeCompare(String(y),'es');
+        return c*sign;
+      });
+      rows.forEach(function(r){tbody.appendChild(r);});
+    });
+  });
 })();
 """
 
@@ -331,9 +411,19 @@ def _body(data: dict, today: date, title: str | None) -> str:
         zones = "|".join((["Remoto"] if lg.get("remote") else []) + (lg.get("zones") or []))
         text = " ".join(str(x or "") for x in (r.get("title"), r.get("company"), r.get("modality"), r.get("level"),
                                                  " ".join(lg.get("districts") or []), rb.get("label"))).lower()
+        ratings = r.get("ratings") or []
+        rating = next((x.get("rating") for x in ratings if isinstance(x.get("rating"), (int, float))), None)
+        age = fresh.get("age_days")
+        # Sort keys, one per sortable column (see the header buttons and the JS below).
+        sort_keys = {
+            "accion": ACTION_ORDER[r["action"]], "encaje": r.get("rank_score") or 0,
+            "puesto": f'{r.get("title") or ""} {r.get("company") or ""}'.lower(),
+            "frescura": age if isinstance(age, int) else 99999, "reputacion": rating if rating is not None else -1,
+        }
+        sort_attrs = " ".join(f'data-s-{k}="{esc(v)}"' for k, v in sort_keys.items())
         return (
             f'<tr data-action="{esc(r["action"])}" data-modality="{esc(r.get("modality"))}" '
-            f'data-risk="{esc(fresh.get("risk", ""))}" data-zones="{esc(zones)}" data-text="{esc(text)}">'
+            f'data-risk="{esc(fresh.get("risk", ""))}" data-zones="{esc(zones)}" data-text="{esc(text)}" {sort_attrs}>'
             f'<td><input type="checkbox" class="done" data-key="{esc(r["key"])}" aria-label="Revisada"></td>'
             f'<td><span class="badge {css}">{esc(label)}</span></td>'
             f'<td><div class="score">{esc(r.get("rank_score"))}</div><span class="dim">{esc(r.get("rank_verdict"))}</span></td>'
@@ -345,9 +435,19 @@ def _body(data: dict, today: date, title: str | None) -> str:
             f'<td>{bullets(r.get("gaps"))}</td></tr>'
         )
 
+    def th(label: str, key: str, first: str, hint: str) -> str:
+        # first click sorts "best first": highest score/rating, freshest, most urgent action, A to Z
+        return (f'<th aria-sort="none"><button type="button" class="sort" data-sort="{key}" data-first="{first}" '
+                f'title="Ordenar: {esc(hint)}">{esc(label)}<span class="arrow" aria-hidden="true"></span></button></th>')
+
     head = (
-        "<thead><tr><th>✓</th><th>Acción</th><th>Encaje</th><th>Puesto</th><th>Frescura</th>"
-        "<th>Reputación</th><th>Fortalezas</th><th>Brechas</th></tr></thead>"
+        "<thead><tr><th>✓</th>"
+        + th("Acción", "accion", "asc", "más urgente primero")
+        + th("Encaje", "encaje", "desc", "mayor puntaje primero")
+        + th("Puesto", "puesto", "asc", "de la A a la Z")
+        + th("Frescura", "frescura", "asc", "más reciente primero")
+        + th("Reputación", "reputacion", "desc", "mejor calificación primero")
+        + "<th>Fortalezas</th><th>Brechas</th></tr></thead>"
     )
     main_rows = [r for r in data["ranked"] if r["action"] != "descartar"]
     out_rows = [r for r in data["ranked"] if r["action"] == "descartar"]
@@ -376,6 +476,9 @@ El encaje es un triaje de <code>/rank</code>; <code>/apply</code> vuelve a evalu
 <select id="fm" aria-label="Modalidad"><option value="">Toda modalidad</option>{modality_opts}</select>
 <select id="fr" aria-label="Riesgo"><option value="">Todo riesgo</option><option value="bajo">bajo</option><option value="medio">medio</option><option value="alto">alto</option></select>
 <select id="fz" aria-label="Zona"><option value="">Toda zona</option>{zone_opts}</select></div>
+<div class="legend"><span><span class="chip place">Distrito</span> <span class="chip zone">Zona de Lima</span> <span class="chip sector">Rubro</span> <span class="chip kind">Tipo de empresa</span></span>
+<span>Confianza del dato: <span class="dots conf-alta">●●●</span> alta · <span class="dots conf-media">●●○</span> media · <span class="dots conf-baja">●○○</span> baja</span>
+<span>Haz clic en Acción, Encaje, Puesto, Frescura o Reputación para ordenar.</span></div>
 <div class="wrap"><table id="main">{head}<tbody>{"".join(row(r) for r in main_rows)}</tbody></table></div>
 <details><summary>Descartadas o no elegibles ({len(out_rows)})</summary>
 <div class="wrap"><table>{head}<tbody>{"".join(row(r) for r in out_rows)}</tbody></table></div></details>

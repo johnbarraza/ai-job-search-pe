@@ -102,7 +102,8 @@ current publication period (republishing resets it - in an October 2026 sample, 
 renewed postings shared one datePosted - so treat the age as a floor), `updated` the
 renewal when later than that, and `validThrough` the portal's expiry (`datePosted` + 60
 days, not an employer deadline).
-Relative dates ("Hoy", "Hace 3 horas") count on the Lima calendar (UTC-5). See
+Relative dates ("Hoy", "Hace 3 horas") count on the Lima calendar (UTC-5). The JSON-LD also gives
+`industry` (the employer's sector) and `district` ("Lima" when the employer gave only the city). See
 `10-peru-market.md` section 10 and `tools/pe_frescura.py`.
 
 ### Company reviews
