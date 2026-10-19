@@ -47,6 +47,7 @@ Si ya lo clonaste sin `--recurse-submodules`: `git submodule update --init vendo
 | **CV de 1 página** por defecto (lo más común en Perú); 2 páginas solo si lo pides | `CV length:` en `CLAUDE.md` |
 | **Perfiles**: una carpeta de trabajo por persona (`/setup --user <nombre>`), que nunca se sube | `tools/perfiles.py` · `perfiles/<nombre>/` |
 | **Calculadora de sueldo**: planilla general vs pequeña/micro empresa (REMYPE) vs recibo por honorarios vs prácticas, con RMV, UIT, AFP/ONP y renta 2026 | `python tools/pe_sueldo.py 4000 --comparar` |
+| **Página de revisión** de una búsqueda, en el orden del flujo (búsqueda → encaje → frescura → reputación → acción), offline y con filtros | `python tools/pe_revision.py --titulo "Nombre"` → `reports/revision-ofertas.html` |
 | **Reputación del empleador**: calificación de Computrabajo con número de opiniones, subpuntajes, conteo por área y opiniones con puesto y fecha; reglas para leer Glassdoor, GPTW (pagado) y SUNAFIL | `bun run .agents/skills/computrabajo-search/cli/src/cli.ts company adecco --area "recursos humanos"` |
 | **Frescura y ghost jobs**: edad desde la publicación original (no la renovación), avisos republicados, vencimiento del portal, postulantes en LinkedIn, riesgo bajo/medio/alto | `python tools/pe_frescura.py detalle.json --calibrar job_scraper/seen_jobs.json` |
 | **Sueldos por empresa** (MyWorkIn, autodeclarados) volcados a `salary_data.json` para `/apply` | `python tools/myworkin_salaries.py "Credicorp"` |
