@@ -178,6 +178,20 @@ def _evidence(source, confidence) -> str:
             + "</span>")
 
 
+MODALITY_CLASS = {"presencial": "pres", "híbrido": "hib", "remoto": "rem"}
+
+
+def meta_html(r: dict) -> str:
+    """Work mode as a coloured pill (it decides commutes), then level and portal, quieter."""
+    modality = r.get("modality") or "no declarado"
+    parts = [f'<span class="pill mod-{MODALITY_CLASS.get(modality, "nd")}">{esc(modality.capitalize())}</span>']
+    if r.get("level") and r["level"] != "no declarado":
+        parts.append(f'<span class="pill lvl">{esc(r["level"])}</span>')
+    if r.get("portal"):
+        parts.append(f'<span class="src">{esc(r["portal"].replace("-search", ""))}</span>')
+    return " ".join(parts)
+
+
 def context_html(ctx: dict | None) -> str:
     """Workplace and employer sector as chips, each with where the data came from and how sure it is."""
     if not ctx:
@@ -189,8 +203,7 @@ def context_html(ctx: dict | None) -> str:
     if lg.get("remote"):
         chips.append('<span class="chip kind">Remoto</span>')
     chips += [f'<span class="chip place">{esc(d)}</span>' for d in districts]
-    if not lg.get("remote"):
-        chips += [f'<span class="chip zone">{esc(z)}</span>' for z in lg.get("zones") or []]
+    # The Lima zone is left to the zone filter: on each row it only repeated the district.
     if not chips:
         chips.append('<span class="chip muted">Lugar sin dato</span>')
     notes = []
@@ -199,7 +212,7 @@ def context_html(ctx: dict | None) -> str:
     if lg.get("residence_required"):
         notes.append("Pide vivir en o cerca de " + esc(", ".join(lg["residence_required"])))
     note_html = "".join(f'<div class="ctx-note">{n}</div>' for n in notes)
-    place = (f'<div class="ctx-row"><span class="ctx-k">Lugar</span><div class="ctx-v">{"".join(chips)}'
+    place = (f'<div class="ctx-row"><span class="ctx-k">Lugar</span><div class="ctx-v">{" ".join(chips)} '
              f'{_evidence(lg.get("source"), lg.get("confidence"))}{note_html}</div></div>')
 
     label = rb.get("label") or ""
@@ -208,15 +221,17 @@ def context_html(ctx: dict | None) -> str:
     sector_chips = ([f'<span class="chip sector">{esc(label)}</span>'] if label
                     else ['<span class="chip muted">Rubro sin identificar</span>'])
     sector_chips += [f'<span class="chip kind">{esc(k)}</span>' for k in kinds]
-    sector = (f'<div class="ctx-row"><span class="ctx-k">Rubro</span><div class="ctx-v">{"".join(sector_chips)}'
+    sector = (f'<div class="ctx-row"><span class="ctx-k">Rubro</span><div class="ctx-v">{" ".join(sector_chips)} '
               f'{_evidence(rb.get("source"), rb.get("confidence"))}</div></div>')
 
     buttons = []
-    if not lg.get("remote") and (lg.get("address") or districts):
-        query = lg.get("address") or f"{districts[0]}, Lima, Perú"
-        if lg.get("address") and districts:
-            query = f"{lg['address']}, {districts[0]}, Lima"
-        buttons.append(f'<a class="btn" href="{esc(maps_url(query))}" target="_blank" rel="noopener noreferrer">Mapa</a>')
+    # A map only for a real address: a district alone drops the pin in its center, not at the job.
+    if not lg.get("remote") and lg.get("address"):
+        query = lg["address"]
+        if districts and districts[0].lower() not in query.lower():
+            query += f", {districts[0]}"
+        buttons.append(f'<a class="btn" href="{esc(maps_url(query + ", Lima, Perú"))}" target="_blank" '
+                       f'rel="noopener noreferrer" title="{esc(lg["address"])}">Mapa</a>')
     for key, label in (("website", "Web"), ("linkedin", "LinkedIn"), ("computrabajo", "Computrabajo")):
         if isinstance(links.get(key), str) and re.match(r"^https?://", links[key]):  # the file may be hand-edited
             buttons.append(f'<a class="btn" href="{esc(links[key])}" target="_blank" rel="noopener noreferrer">{label}</a>')
@@ -262,7 +277,7 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
 
 _DARK = """--bg:#11151b;--card:#1a2029;--ink:#e6eaf0;--dim:#9aa6b5;--line:#2c3440;
 --accent:#9cc1ea;--go:#4ade80;--go-bg:#14321f;--warn:#fbbf24;--warn-bg:#3a2e10;--stop:#f87171;--stop-bg:#3b1717;
---muted-bg:#2a313c;--out:#9aa6b5;--chip-place:#1d3a5c;--chip-sector:#23303f;color-scheme:dark"""
+--muted-bg:#2a313c;--out:#9aa6b5;--chip-place:#1d3a5c;--chip-sector:#23303f;--mod-pres:#c7d6ea;--mod-pres-bg:#253246;--mod-hib:#c4b5fd;--mod-hib-bg:#2e2350;color-scheme:dark"""
 
 # Light tokens on :root; dark ones under prefers-color-scheme (unless the host forces light)
 # and again under data-theme="dark", so a host theme toggle wins both ways.
@@ -270,12 +285,12 @@ CSS = """
 /* Layout: the five workflow steps as a strip, then one scannable table per decision. */
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2430;--dim:#5f6b7a;--line:#dfe3e8;--accent:#1f3550;
 --go:#15803d;--go-bg:#dcfce7;--warn:#a16207;--warn-bg:#fef3c7;--stop:#b91c1c;--stop-bg:#fee2e2;
---muted-bg:#e5e7eb;--out:#6b7280;--chip-place:#dbe8f6;--chip-sector:#eef1f5}
+--muted-bg:#e5e7eb;--out:#6b7280;--chip-place:#dbe8f6;--chip-sector:#eef1f5;--mod-pres:#1f3550;--mod-pres-bg:#e3e9f1;--mod-hib:#6d28d9;--mod-hib-bg:#ede9fe}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){""" + _DARK + """}}
 :root[data-theme="dark"]{""" + _DARK + """}
 [hidden]{display:none!important}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header,main,footer{max-width:1280px;margin:0 auto;padding-block:16px;
+header,main,footer{max-width:1600px;margin:0 auto;padding-block:16px;
 padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 h1,h2{text-wrap:balance}.score,.step .big{font-variant-numeric:tabular-nums}
 a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -303,7 +318,13 @@ td ul{margin:0;padding-left:16px}td li{margin:0 0 2px}
 .ctx-k{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;padding-top:3px}
 .ctx-v{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
 .ctx-v .ev,.ctx-v .ctx-note{flex-basis:100%}
-table td:nth-child(4){min-width:300px;width:30%}
+table td:nth-child(1){width:28px}table td:nth-child(2){width:120px}table td:nth-child(3){width:84px}
+table td:nth-child(4){min-width:330px;width:28%}table td:nth-child(5){width:13%}table td:nth-child(6){width:15%}
+.meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:5px}
+.pill{display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;line-height:1.5}
+.pill.mod-pres{background:var(--mod-pres-bg);color:var(--mod-pres)}.pill.mod-hib{background:var(--mod-hib-bg);color:var(--mod-hib)}
+.pill.mod-rem{background:var(--go-bg);color:var(--go)}.pill.mod-nd{border:1px dashed var(--line);color:var(--dim);font-weight:500}
+.pill.lvl{background:var(--muted-bg);color:var(--ink);font-weight:500}.src{font-size:11px;color:var(--dim)}
 .chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;line-height:1.6;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .chip.place{background:var(--chip-place);border-color:transparent;font-weight:600}
 .chip.zone{color:var(--dim)}
@@ -324,7 +345,7 @@ th[aria-sort="ascending"] .arrow::after{content:"▲";opacity:1}
 th[aria-sort="descending"] .arrow::after{content:"▼";opacity:1}
 .legend{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:12px;color:var(--dim);margin:6px 0 2px}
 details{margin:12px 0}summary{cursor:pointer;font-weight:600;color:var(--accent)}
-.wrap{overflow-x:auto;min-width:0}.wrap table{min-width:960px}
+.wrap{overflow-x:auto;min-width:0}.wrap table{min-width:1180px}
 @media (max-width:900px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.flow{grid-template-columns:minmax(0,1fr)}}
 """
@@ -410,7 +431,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
     def row(r: dict) -> str:
         label, css = labels[r["action"]]
         fresh = r.get("fresh") or {}
-        meta = " · ".join(x for x in (r.get("modality"), r.get("level"), (r.get("portal") or "").replace("-search", "")) if x)
+        meta = meta_html(r)
         ctx = r.get("context") or {}
         lg, rb = ctx.get("lugar") or {}, ctx.get("rubro") or {}
         zones = "|".join((["Remoto"] if lg.get("remote") else []) + (lg.get("zones") or []))
@@ -432,7 +453,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
             f'<td><input type="checkbox" class="done" data-key="{esc(r["key"])}" aria-label="Revisada"></td>'
             f'<td><span class="badge {css}">{esc(label)}</span></td>'
             f'<td><div class="score">{esc(r.get("rank_score"))}</div><span class="dim">{esc(r.get("rank_verdict"))}</span></td>'
-            f'<td><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}<br><span class="dim">{esc(meta)}</span>'
+            f'<td><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}<div class="meta">{meta}</div>'
             f'{context_html(r.get("context"))}</td>'
             f'<td>{fresh_html(r.get("fresh"))}</td>'
             f'<td>{rating_html(r.get("ratings"))}</td>'
@@ -481,7 +502,7 @@ El encaje es un triaje de <code>/rank</code>; <code>/apply</code> vuelve a evalu
 <select id="fm" aria-label="Modalidad"><option value="">Toda modalidad</option>{modality_opts}</select>
 <select id="fr" aria-label="Riesgo"><option value="">Todo riesgo</option><option value="bajo">bajo</option><option value="medio">medio</option><option value="alto">alto</option></select>
 <select id="fz" aria-label="Zona"><option value="">Toda zona</option>{zone_opts}</select></div>
-<div class="legend"><span><span class="chip place">Distrito</span> <span class="chip zone">Zona de Lima</span> <span class="chip sector">Rubro</span> <span class="chip kind">Tipo de empresa</span></span>
+<div class="legend"><span><span class="pill mod-pres">Presencial</span> <span class="pill mod-hib">Híbrido</span> <span class="pill mod-rem">Remoto</span> <span class="chip place">Distrito</span> <span class="chip sector">Rubro</span> <span class="chip kind">Tipo de empresa</span></span>
 <span>Confianza del dato: <span class="dots conf-alta">●●●</span> alta · <span class="dots conf-media">●●○</span> media · <span class="dots conf-baja">●○○</span> baja</span>
 <span>Haz clic en Acción, Encaje, Puesto, Frescura o Reputación para ordenar.</span></div>
 <div class="wrap"><table id="main">{head}<tbody>{"".join(row(r) for r in main_rows)}</tbody></table></div>

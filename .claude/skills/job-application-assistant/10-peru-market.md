@@ -1,5 +1,5 @@
 ---
-framework_version: 1.5.0
+framework_version: 1.5.1
 ---
 
 # Mercado laboral peruano (fork Perú)
@@ -238,7 +238,8 @@ El tiempo de traslado en Lima pesa más que la distancia. Para el criterio de ub
   es la sede del cliente que nombra el aviso. Lo encontrado en la web va en
   `company_research/<empresa>.json`, campo `context` (`offices`, `sector`, `website`,
   `linkedin`), siempre con su URL de fuente. La página de `pe_revision.py` lo muestra como
-  chips, con un botón de mapa.
+  chips; el botón de mapa aparece solo cuando hay una dirección (del aviso, del portal o de la web),
+  porque con el distrito solo el punto cae en el centro del distrito, no en el trabajo.
 
 ## 9. Programas de extensión universitaria y cursos de extensión
 

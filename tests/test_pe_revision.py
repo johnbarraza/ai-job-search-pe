@@ -141,19 +141,27 @@ class ContextAndSorting(unittest.TestCase):
     def test_place_and_sector_render_as_chips_with_readable_evidence_and_a_map(self):
         html = pr.context_html(self.CTX)
         self.assertIn('<span class="chip place">Santiago de Surco</span>', html)
-        self.assertIn('<span class="chip zone">Lima Moderna</span>', html)
+        self.assertNotIn("Lima Moderna", html)  # the zone lives in the filter, not on every row
         # the sector already says "Consultora": no second chip repeating it
         self.assertNotIn('<span class="chip kind">Consultora</span>', html)
         other = pr.context_html(dict(self.CTX, rubro=dict(self.CTX["rubro"], label="Servicios Profesionales")))
         self.assertIn('<span class="chip kind">Consultora</span>', other)
         self.assertIn("dato del portal", html)
         self.assertIn("●●○", html)
-        self.assertIn("https://www.google.com/maps/search/?api=1&amp;query=Santiago+de+Surco%2C+Lima%2C+Per%C3%BA", html)
+        self.assertNotIn("google.com/maps", html)  # a district alone is not where the job is: no map
+        with_address = pr.context_html(dict(self.CTX, lugar=dict(self.CTX["lugar"], address="Av. Circunvalación Club Golf Los Incas 206")))
+        self.assertIn("query=Av.+Circunvalaci%C3%B3n+Club+Golf+Los+Incas+206%2C+Santiago+de+Surco%2C+Lima%2C+Per%C3%BA", with_address)
         self.assertIn(">Computrabajo</a>", html)
         self.assertNotIn("javascript:", html)  # a non-http link from the cache never becomes a button
 
+    def test_work_mode_is_a_coloured_pill(self):
+        self.assertIn('<span class="pill mod-hib">Híbrido</span>', pr.meta_html(ranked()))
+        self.assertIn('<span class="pill mod-rem">Remoto</span>', pr.meta_html(ranked(modality="remoto")))
+        self.assertIn('<span class="pill mod-nd">No declarado</span>', pr.meta_html(ranked(modality="no declarado")))
+        self.assertIn('<span class="pill lvl">asistente</span>', pr.meta_html(ranked()))
+
     def test_remote_postings_get_no_map(self):
-        ctx = dict(self.CTX, lugar=dict(self.CTX["lugar"], remote=True))
+        ctx = dict(self.CTX, lugar=dict(self.CTX["lugar"], remote=True, address="Av. Larco 1"))
         self.assertNotIn("maps", pr.context_html(ctx))
         self.assertIn('<span class="chip kind">Remoto</span>', pr.context_html(ctx))
 

@@ -79,6 +79,21 @@ class Place(unittest.TestCase):
                          (["Miraflores"], "web", "media", "Av. Larco 1"))
 
 
+class Address(unittest.TestCase):
+    def test_street_addresses_and_corners_from_the_text(self):
+        self.assertEqual(pc.address_from_text("Ubicación: Av. Javier Prado Este 4200, Lima. Horario de 9 a 6"), "Av. Javier Prado Este 4200")
+        self.assertEqual(pc.address_from_text("sede Magdalena (Alt. Salaverry con Pershing)."), "Alt. Salaverry con Pershing")
+        self.assertEqual(pc.address_from_text("Planta en Carretera Central Km 15.5 - Ate"), "Carretera Central Km 15.5")
+
+    def test_prose_and_residence_are_not_addresses(self):
+        self.assertIsNone(pc.address_from_text("Calle a calle buscamos talento"))
+        self.assertIsNone(pc.address_from_text("Residir cerca de Av. Túpac Amaru 1200"))
+
+    def test_the_address_reaches_the_place(self):
+        lugar = run(posting(description="Laborar en nuestra sede de Av. Javier Prado Este 4200, San Borja."))["lugar"]
+        self.assertEqual(lugar["address"], "Av. Javier Prado Este 4200, San Borja")  # the district helps the map
+
+
 class Sector(unittest.TestCase):
     def test_the_employer_describing_itself_is_high_confidence(self):
         rubro = run(posting(description="Somos una empresa del sector ingeniería, electricidad y construcción, "

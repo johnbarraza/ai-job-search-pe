@@ -156,6 +156,26 @@ def find_districts(text: str) -> dict[str, list[str]]:
     return out
 
 
+# A street address written in the posting: "Av. Javier Prado Este 4200", "Jr. Huallaga 345",
+# "Carretera Central Km 15.5", or a corner "Alt. Salaverry con Pershing".
+ADDRESS = re.compile(r"\b(?:Av(?:enida)?\.?|Jr\.|Jir[oó]n|Calle|Prolongaci[oó]n|Carretera|Panamericana|Alt\.)\s+[^\n;()]{3,70}")
+_ADDRESS_END = re.compile(r"\.\s|\.$|\)|\s/\s|\s-\s|,\s*(?:Lima|Per[uú])\b")
+
+
+def address_from_text(text: str) -> str | None:
+    """The first street address in the text, only when it has a number, a km or a corner ("con")."""
+    for m in ADDRESS.finditer(text or ""):
+        raw = m.group(0)
+        prefix = re.match(r"\S+\s+", raw).group(0)  # "Av. " - its own period is not the end
+        candidate = (prefix + _ADDRESS_END.split(raw[len(prefix):], maxsplit=1)[0]).strip(" ,.")
+        before = (text or "")[max(0, m.start() - 40):m.start()]
+        if HOME_CUE.search(before):
+            continue  # "residir cerca de Av. ..." is not the workplace
+        if re.search(r"\d|\bcon\b|\bcdra\b|\bcuadra\b|\bkm\b", candidate, re.I):
+            return candidate
+    return None
+
+
 def portal_district(posting: dict) -> str | None:
     for raw in (posting.get("district"), (posting.get("location") or "").split(",")[0]):
         found = find_districts(raw or "")
@@ -219,8 +239,11 @@ def analyze(posting: dict, research_dir: Path) -> dict:
     else:
         lugar = {"districts": [], "source": None, "confidence": None}
     lugar["zones"] = sorted({ZONE_OF[d] for d in lugar["districts"] if d in ZONE_OF})
+    text_address = address_from_text(desc)
     if posting.get("address"):
         lugar["address"] = posting["address"]
+    elif text_address:
+        lugar["address"] = text_address
     lugar["residence_required"] = found["home"]
     lugar["remote"] = posting.get("modality") == "remoto"
     if lugar["remote"] and lugar["districts"]:
