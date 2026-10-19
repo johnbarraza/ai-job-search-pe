@@ -153,17 +153,48 @@ def bullets(items) -> str:
     return "<ul>" + "".join(f"<li>{esc(i)}</li>" for i in items) + "</ul>" if items else '<span class="dim">—</span>'
 
 
-def collect(state: dict, fresh_rows: list[dict], research_dir: Path) -> dict:
+def context_html(ctx: dict | None) -> str:
+    """Workplace and employer sector, each with its source and confidence (tools/pe_contexto.py)."""
+    if not ctx:
+        return ""
+    lg, rb = ctx.get("lugar") or {}, ctx.get("rubro") or {}
+
+    def tag(src, conf):
+        return f' <span class="tag">{esc(src)}{" · " + esc(conf) if conf else ""}</span>' if src else ""
+
+    where = ", ".join(lg.get("districts") or [])
+    zones = ", ".join(lg.get("zones") or [])
+    if lg.get("remote"):
+        where = "remoto" + (f" (mencionan {where})" if where else "")
+    place = (f'Lugar: {esc(where)}{" · " + esc(zones) if zones and not lg.get("remote") else ""}'
+             + tag(lg.get("source"), lg.get("confidence"))) if where else '<span class="dim">Lugar: sin dato</span>'
+    if lg.get("address"):
+        place += f'<br><span class="dim">{esc(lg["address"])}</span>'
+    if lg.get("residence_required"):
+        place += f'<br><span class="dim">Pide residir en o cerca de {esc(", ".join(lg["residence_required"]))}</span>'
+    flags = [x for x, on in (("consultora", rb.get("staffing")), ("recluta para un cliente", rb.get("for_client")),
+                              ("empresa anónima", rb.get("anonymous"))) if on]
+    sector = (f'Rubro: {esc(rb["label"])}' + tag(rb.get("source"), rb.get("confidence"))) if rb.get("label") \
+        else '<span class="dim">Rubro: sin identificar</span>'
+    if flags:
+        sector += f' <span class="dim">· {esc(" · ".join(flags))}</span>'
+    return f'<div class="ctx">{place}<br>{sector}</div>'
+
+
+def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_rows: list[dict] | None = None) -> dict:
     seen = state.get("seen") or {}
     fresh_by_id = {pe_frescura.posting_id(r): r for r in fresh_rows}
+    ctx_by_id = {pe_frescura.posting_id(r): r for r in (context_rows or [])}
     ranked, unranked = [], []
     for key, e in seen.items():
         if not isinstance(e, dict):
             continue
         row = dict(e, key=key)
         if e.get("status") == "ranked":
-            fresh = fresh_by_id.get(pe_frescura.posting_id({"url": e.get("url")}))
+            pid = pe_frescura.posting_id({"url": e.get("url")})
+            fresh = fresh_by_id.get(pid)
             row["fresh"] = fresh
+            row["context"] = ctx_by_id.get(pid)
             row["action"] = action_for(e, fresh)
             row["ratings"] = load_ratings(research_dir, e.get("company") or "")
             ranked.append(row)
@@ -223,6 +254,7 @@ td ul{margin:0;padding-left:16px}td li{margin:0 0 2px}
 .risk{font-weight:700;text-transform:uppercase;font-size:11px}.risk.bajo{color:var(--go)}.risk.medio{color:var(--warn)}.risk.alto{color:var(--stop)}
 .score{font-size:18px;font-weight:700}.tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--dim)}
 .signals{color:var(--dim);font-size:12px}tr.done{opacity:.55}
+.ctx{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:12px}
 details{margin:12px 0}summary{cursor:pointer;font-weight:600;color:var(--accent)}
 .wrap{overflow-x:auto;min-width:0}.wrap table{min-width:960px}
 @media (max-width:900px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -239,16 +271,17 @@ JS = """
     var tr=cb.closest('tr');cb.checked=!!done[cb.dataset.key];tr.classList.toggle('done',cb.checked);
     cb.addEventListener('change',function(){done[cb.dataset.key]=cb.checked;save(done);tr.classList.toggle('done',cb.checked);});
   });
-  var q=document.getElementById('q'),fa=document.getElementById('fa'),fm=document.getElementById('fm'),fr=document.getElementById('fr');
+  var q=document.getElementById('q'),fa=document.getElementById('fa'),fm=document.getElementById('fm'),fr=document.getElementById('fr'),fz=document.getElementById('fz');
   function apply(){
     var t=(q.value||'').toLowerCase();
     document.querySelectorAll('#main tbody tr').forEach(function(tr){
       var ok=(!t||tr.dataset.text.indexOf(t)>=0)&&(!fa.value||tr.dataset.action===fa.value)
-        &&(!fm.value||tr.dataset.modality===fm.value)&&(!fr.value||tr.dataset.risk===fr.value);
+        &&(!fm.value||tr.dataset.modality===fm.value)&&(!fr.value||tr.dataset.risk===fr.value)
+        &&(!fz.value||tr.dataset.zones.split('|').indexOf(fz.value)>=0);
       tr.hidden=!ok;
     });
   }
-  [q,fa,fm,fr].forEach(function(el){el.addEventListener('input',apply);el.addEventListener('change',apply);});
+  [q,fa,fm,fr,fz].forEach(function(el){el.addEventListener('input',apply);el.addEventListener('change',apply);});
 })();
 """
 
@@ -293,14 +326,19 @@ def _body(data: dict, today: date, title: str | None) -> str:
         label, css = labels[r["action"]]
         fresh = r.get("fresh") or {}
         meta = " · ".join(x for x in (r.get("modality"), r.get("level"), (r.get("portal") or "").replace("-search", "")) if x)
-        text = " ".join(str(x or "") for x in (r.get("title"), r.get("company"), r.get("modality"), r.get("level"))).lower()
+        ctx = r.get("context") or {}
+        lg, rb = ctx.get("lugar") or {}, ctx.get("rubro") or {}
+        zones = "|".join((["Remoto"] if lg.get("remote") else []) + (lg.get("zones") or []))
+        text = " ".join(str(x or "") for x in (r.get("title"), r.get("company"), r.get("modality"), r.get("level"),
+                                                 " ".join(lg.get("districts") or []), rb.get("label"))).lower()
         return (
             f'<tr data-action="{esc(r["action"])}" data-modality="{esc(r.get("modality"))}" '
-            f'data-risk="{esc(fresh.get("risk", ""))}" data-text="{esc(text)}">'
+            f'data-risk="{esc(fresh.get("risk", ""))}" data-zones="{esc(zones)}" data-text="{esc(text)}">'
             f'<td><input type="checkbox" class="done" data-key="{esc(r["key"])}" aria-label="Revisada"></td>'
             f'<td><span class="badge {css}">{esc(label)}</span></td>'
             f'<td><div class="score">{esc(r.get("rank_score"))}</div><span class="dim">{esc(r.get("rank_verdict"))}</span></td>'
-            f'<td><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}<br><span class="dim">{esc(meta)}</span></td>'
+            f'<td><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}<br><span class="dim">{esc(meta)}</span>'
+            f'{context_html(r.get("context"))}</td>'
             f'<td>{fresh_html(r.get("fresh"))}</td>'
             f'<td>{rating_html(r.get("ratings"))}</td>'
             f'<td>{bullets(r.get("strengths"))}</td>'
@@ -314,6 +352,10 @@ def _body(data: dict, today: date, title: str | None) -> str:
     main_rows = [r for r in data["ranked"] if r["action"] != "descartar"]
     out_rows = [r for r in data["ranked"] if r["action"] == "descartar"]
     modalities = sorted({r.get("modality") for r in main_rows if r.get("modality")})
+    zone_set = sorted({z for r in main_rows for z in ((((r.get("context") or {}).get("lugar") or {}).get("zones")) or [])})
+    if any((((r.get("context") or {}).get("lugar") or {}).get("remote")) for r in main_rows):
+        zone_set.append("Remoto")
+    zone_opts = "".join(f'<option value="{esc(z)}">{esc(z)}</option>' for z in zone_set)
     action_opts = "".join(f'<option value="{k}">{esc(lbl)}</option>' for k, lbl, _ in ACTIONS if k != "descartar")
     modality_opts = "".join(f'<option value="{esc(m)}">{esc(m)}</option>' for m in modalities)
     unranked = "".join(
@@ -332,7 +374,8 @@ El encaje es un triaje de <code>/rank</code>; <code>/apply</code> vuelve a evalu
 <div class="filters"><input id="q" type="search" placeholder="Buscar puesto o empresa" aria-label="Buscar">
 <select id="fa" aria-label="Acción"><option value="">Toda acción</option>{action_opts}</select>
 <select id="fm" aria-label="Modalidad"><option value="">Toda modalidad</option>{modality_opts}</select>
-<select id="fr" aria-label="Riesgo"><option value="">Todo riesgo</option><option value="bajo">bajo</option><option value="medio">medio</option><option value="alto">alto</option></select></div>
+<select id="fr" aria-label="Riesgo"><option value="">Todo riesgo</option><option value="bajo">bajo</option><option value="medio">medio</option><option value="alto">alto</option></select>
+<select id="fz" aria-label="Zona"><option value="">Toda zona</option>{zone_opts}</select></div>
 <div class="wrap"><table id="main">{head}<tbody>{"".join(row(r) for r in main_rows)}</tbody></table></div>
 <details><summary>Descartadas o no elegibles ({len(out_rows)})</summary>
 <div class="wrap"><table>{head}<tbody>{"".join(row(r) for r in out_rows)}</tbody></table></div></details>
@@ -356,6 +399,8 @@ def main(argv=None) -> int:
     ap.add_argument("--frescura", type=Path, default=Path("reports/frescura.json"),
                     help="tools/pe_frescura.py --json output (skipped when missing)")
     ap.add_argument("--research", type=Path, default=Path("company_research"))
+    ap.add_argument("--contexto", type=Path, default=Path("reports/contexto.json"),
+                    help="tools/pe_contexto.py --json output: workplace and sector (skipped when missing)")
     ap.add_argument("--out", type=Path, default=Path("reports/revision-ofertas.html"))
     ap.add_argument("--titulo", help="name shown in the heading, e.g. the candidate's")
     ap.add_argument("--artifact", action="store_true",
@@ -375,7 +420,14 @@ def main(argv=None) -> int:
         except (OSError, ValueError, AttributeError) as exc:
             print(f"cannot read {args.frescura}: {exc}", file=sys.stderr)
             return 1
-    data = collect(state, fresh_rows, args.research)
+    context_rows = []
+    if args.contexto.is_file():
+        try:
+            context_rows = json.loads(args.contexto.read_text(encoding="utf-8")).get("postings", [])
+        except (OSError, ValueError, AttributeError) as exc:
+            print(f"cannot read {args.contexto}: {exc}", file=sys.stderr)
+            return 1
+    data = collect(state, fresh_rows, args.research, context_rows)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render(data, args.today, args.titulo, args.artifact), encoding="utf-8")
     a = data["actions"]

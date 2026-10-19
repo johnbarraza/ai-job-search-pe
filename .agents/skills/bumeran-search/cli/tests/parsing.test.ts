@@ -211,7 +211,12 @@ describe("mapAvisoDetail", () => {
       estado: "activo",
       cantidadVacantes: 1,
       tipoContratacion: { nombre: "Temporal" },
+      empresa: { denominacion: "C.MEJIA CONTRATISTAS GENERALES S.A.C.", industria: "Construcción", rangoEmpleados: "Entre 51 y 150" },
+      localizacion: { detalle: "Los Olivos, Lima, Peru", direccion: null },
     });
+    expect(job.industry).toBe("Construcción");
+    expect(job.companySize).toBe("Entre 51 y 150");
+    expect(job.address).toBeNull();
     expect(job.date).toBe("2026-10-13");
     expect(job.updated).toBe("2026-10-16");
     expect(job.validThrough).toBe("2027-01-11");

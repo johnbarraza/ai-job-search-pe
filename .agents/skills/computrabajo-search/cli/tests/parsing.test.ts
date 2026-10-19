@@ -322,7 +322,9 @@ const JSONLD_DETAIL_HTML = DETAIL_HTML.replace(
 <script type="application/ld+json">
 {"@context":"https://schema.org/","@graph":[{"@type":"Organization","name":"Computrabajo Per\\u00FA"},
 {"@context":"https://schema.org/","@type":"JobPosting","title":"Asistente de Gestion Humana",
-"datePosted": "2026-06-16","employmentType": "FULL_TIME","validThrough": "2026-08-15"}]}
+"industry": "Agricultura / Pesca / Ganader\\u00EDa",
+"datePosted": "2026-06-16","employmentType": "FULL_TIME","validThrough": "2026-08-15",
+"jobLocation": {"@type": "Place", "address": {"@type": "PostalAddress", "addressLocality": "Lima", "addressRegion": "San Isidro", "addressCountry": "Per\\u00FA"}}}]}
 </script>`;
 
 describe("parseJobDetail: original publication vs renewal (JSON-LD)", () => {
@@ -338,6 +340,17 @@ describe("parseJobDetail: original publication vs renewal (JSON-LD)", () => {
 
   test("validThrough comes from the JSON-LD", () => {
     expect(job.validThrough).toBe("2026-08-15");
+  });
+
+  test("employer sector and district come from the JSON-LD, unicode escapes decoded", () => {
+    expect(job.industry).toBe("Agricultura / Pesca / Ganadería");
+    expect(job.district).toBe("San Isidro");
+  });
+
+  test("a page without JSON-LD has no sector or district", () => {
+    const bare = parseJobDetail(DETAIL_HTML, "X", new Date("2026-07-27T12:00:00Z"));
+    expect(bare.industry).toBeNull();
+    expect(bare.district).toBeNull();
   });
 
   test("a page without the renewal marker and an equal date reports no renewal", () => {

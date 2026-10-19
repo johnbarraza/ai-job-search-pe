@@ -39,6 +39,8 @@ export async function runDetail(opts: DetailOpts): Promise<number> {
         job.validThrough ? `Valid through: ${job.validThrough} (portal expiry, not an employer deadline)` : "",
         job.status ? `Status: ${job.status}` : "",
         job.vacancies !== null ? `Vacancies: ${job.vacancies}` : "",
+        job.address ? `Address: ${job.address}` : "",
+        job.industry ? `Industry: ${job.industry}${job.companySize ? ` · ${job.companySize} employees` : ""}` : "",
         "",
         job.description || "(no description)",
         "",

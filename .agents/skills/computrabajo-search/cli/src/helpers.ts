@@ -132,6 +132,10 @@ export interface JobDetail extends JobCard {
   updated: string | null
   /** Expiry the portal publishes in the page's JSON-LD (observed: datePosted + 60 days). */
   validThrough: string | null
+  /** Employer's sector from the JSON-LD (e.g. "Agricultura / Pesca / Ganadería"); the company's, not the job's. */
+  industry: string | null
+  /** District from the JSON-LD address ("Ate", "San Isidro"); "Lima" when the employer gave only the city. */
+  district: string | null
   description: string | null
   salary: string | null
   contractType: string | null
@@ -361,10 +365,21 @@ export function isRenewed(text: string | null): boolean {
  * JSON-LD block carries both ("datePosted", "validThrough").
  */
 export function jsonLdDate(html: string, field: "datePosted" | "validThrough"): string | null {
+  const v = jsonLdText(html, field)
+  return v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null
+}
+
+/** One string field of the JobPosting JSON-LD ("industry", "addressRegion", ...), unescaped. */
+export function jsonLdText(html: string, field: string): string | null {
   const block = html.match(/<script type="application\/ld\+json">([\s\S]*?"JobPosting"[\s\S]*?)<\/script>/)
   if (!block) return null
-  const m = block[1].match(new RegExp(`"${field}"\\s*:\\s*"(\\d{4}-\\d{2}-\\d{2})`))
-  return m ? m[1] : null
+  const m = block[1].match(new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`))
+  if (!m) return null
+  try {
+    return (JSON.parse(`"${m[1]}"`) as string).trim() || null
+  } catch {
+    return m[1].trim() || null
+  }
 }
 
 /** Parse the real total-result count from the search page's <h1> badge, if present. */
@@ -560,6 +575,8 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     ? shown && shown > datePosted ? shown : null
     : isRenewed(shownText) ? shown : null
   const validThrough = jsonLdDate(html, "validThrough")
+  const industry = jsonLdText(html, "industry")
+  const district = jsonLdText(html, "addressRegion")
 
   const applyMatch = html.match(/data-href-offer-apply="([^"]+)"/)
   const applyUrl = applyMatch ? decodeHtmlEntities(applyMatch[1]) : null
@@ -574,6 +591,8 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     url: `${BASE_URL}/ofertas-de-trabajo/oferta-de-trabajo-de-x-${id}`,
     updated,
     validThrough,
+    industry,
+    district,
     description,
     salary,
     contractType,

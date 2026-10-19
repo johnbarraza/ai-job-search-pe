@@ -109,6 +109,12 @@ export interface JobDetail extends JobCard {
   vacancies: number | null
   /** Contract type (tipoContratacion), e.g. "Temporal", "Indeterminado"; the text often omits it. */
   contractType: string | null
+  /** Employer's sector from its Bumeran profile (empresa.industria), e.g. "Construcción". */
+  industry: string | null
+  /** Employer headcount band (empresa.rangoEmpleados), e.g. "Entre 51 y 150". */
+  companySize: string | null
+  /** Street address of the workplace when the employer filled it in (rare). */
+  address: string | null
 }
 
 /** Lowercase, strip diacritics, collapse to hyphens — matches Bumeran's own URL slugs. */
@@ -375,8 +381,8 @@ export interface RawAvisoDetail {
   id: number
   titulo: string
   descripcion: string | null
-  empresa?: { denominacion?: string | null } | null
-  localizacion?: { detalle?: string | null } | null
+  empresa?: { denominacion?: string | null; industria?: string | null; rangoEmpleados?: string | null } | null
+  localizacion?: { detalle?: string | null; direccion?: string | null } | null
   fechaPublicacion?: string | null
   fechaModificado?: string | null
   fechaFinalizacion?: string | null
@@ -421,5 +427,8 @@ export function mapAvisoDetail(aviso: RawAvisoDetail): JobDetail {
     status: aviso.estado || null,
     vacancies: typeof aviso.cantidadVacantes === "number" ? aviso.cantidadVacantes : null,
     contractType: aviso.tipoContratacion?.nombre || null,
+    industry: aviso.empresa?.industria || null,
+    companySize: aviso.empresa?.rangoEmpleados || null,
+    address: aviso.localizacion?.direccion || null,
   }
 }
