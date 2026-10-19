@@ -133,7 +133,7 @@ class ArtifactMode(unittest.TestCase):
         data = pr.collect({"seen": {"k": ranked()}}, [], Path(tempfile.mkdtemp()))
         page = pr.render(data, date(2026, 10, 18), "César", artifact=True)
         self.assertTrue(page.startswith("<title>Ofertas de César</title>"))
-        for tag in ("<!doctype", "<html", "<head", "<body", "</body>"):
+        for tag in ("<!doctype", "<html", "<head>", "<body", "</body>"):  # "<head" would match <header>
             self.assertNotIn(tag, page.lower())
         self.assertIn('<meta name="claude:viewport-fit-sides" content="cover">', page)
         self.assertIn("max(16px,env(safe-area-inset-left,0px))", page)
