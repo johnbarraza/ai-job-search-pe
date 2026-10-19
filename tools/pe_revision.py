@@ -101,6 +101,14 @@ def fmt_es(value) -> str:
     return f"{int(value):,}".replace(",", ".")
 
 
+def fmt_rating(value) -> str:
+    """4.26 -> '4,26'; 3.9 -> '3,9'; 4 -> '4,0'."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return "?"
+    text = f"{float(value):.2f}".rstrip("0")
+    return (text + "0" if text.endswith(".") else text).replace(".", ",")
+
+
 def rating_html(ratings: list[dict] | None) -> str:
     if ratings is None:
         return '<span class="dim">sin investigar</span>'
@@ -120,7 +128,7 @@ def rating_html(ratings: list[dict] | None) -> str:
         count = f"n={esc(fmt_es(n))}" if isinstance(n, int) else "sin n"
         note = f'<br><span class="dim">{esc(r["note"])}</span>' if r.get("note") else ""
         parts.append(
-            f'{link(r.get("url"), r.get("source") or "fuente")} <b>{esc(fmt_es(r.get("rating")))}</b>'
+            f'{link(r.get("url"), r.get("source") or "fuente")} <b>{esc(fmt_rating(r.get("rating")))}</b>'
             f' <span class="dim">({count}{latest})</span>{ref}{area}{note}'
         )
     return "<br>".join(parts)
