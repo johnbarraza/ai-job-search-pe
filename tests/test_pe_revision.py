@@ -128,5 +128,24 @@ class Cli(unittest.TestCase):
             self.assertNotIn("<script src", page)
 
 
+class ArtifactMode(unittest.TestCase):
+    def test_artifact_mode_drops_the_wrapper_and_declares_the_gutter(self):
+        data = pr.collect({"seen": {"k": ranked()}}, [], Path(tempfile.mkdtemp()))
+        page = pr.render(data, date(2026, 10, 18), "César", artifact=True)
+        self.assertTrue(page.startswith("<title>Ofertas de César</title>"))
+        for tag in ("<!doctype", "<html", "<head", "<body", "</body>"):
+            self.assertNotIn(tag, page.lower())
+        self.assertIn('<meta name="claude:viewport-fit-sides" content="cover">', page)
+        self.assertIn("max(16px,env(safe-area-inset-left,0px))", page)
+
+    def test_both_modes_follow_the_host_theme_toggle(self):
+        data = pr.collect({"seen": {}}, [], Path(tempfile.mkdtemp()))
+        for artifact in (False, True):
+            page = pr.render(data, date(2026, 10, 18), None, artifact=artifact)
+            self.assertIn(':root:not([data-theme="light"])', page)
+            self.assertIn(':root[data-theme="dark"]', page)
+            self.assertIn("tr.hidden=!ok", page)
+
+
 if __name__ == "__main__":
     unittest.main()

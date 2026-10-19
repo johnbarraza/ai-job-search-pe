@@ -185,15 +185,25 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path) -> dict:
     }
 
 
+_DARK = """--bg:#11151b;--card:#1a2029;--ink:#e6eaf0;--dim:#9aa6b5;--line:#2c3440;
+--accent:#9cc1ea;--go:#4ade80;--go-bg:#14321f;--warn:#fbbf24;--warn-bg:#3a2e10;--stop:#f87171;--stop-bg:#3b1717;
+--muted-bg:#2a313c;--out:#9aa6b5;color-scheme:dark"""
+
+# Light tokens on :root; dark ones under prefers-color-scheme (unless the host forces light)
+# and again under data-theme="dark", so a host theme toggle wins both ways.
 CSS = """
+/* Layout: the five workflow steps as a strip, then one scannable table per decision. */
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1d2430;--dim:#5f6b7a;--line:#dfe3e8;--accent:#1f3550;
 --go:#15803d;--go-bg:#dcfce7;--warn:#a16207;--warn-bg:#fef3c7;--stop:#b91c1c;--stop-bg:#fee2e2;
 --muted-bg:#e5e7eb;--out:#6b7280}
-@media (prefers-color-scheme:dark){:root{--bg:#11151b;--card:#1a2029;--ink:#e6eaf0;--dim:#9aa6b5;--line:#2c3440;
---accent:#9cc1ea;--go:#4ade80;--go-bg:#14321f;--warn:#fbbf24;--warn-bg:#3a2e10;--stop:#f87171;--stop-bg:#3b1717;
---muted-bg:#2a313c;--out:#9aa6b5}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){""" + _DARK + """}}
+:root[data-theme="dark"]{""" + _DARK + """}
+[hidden]{display:none!important}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header,main,footer{max-width:1280px;margin:0 auto;padding:16px}
+header,main,footer{max-width:1280px;margin:0 auto;padding-block:16px;
+padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2{text-wrap:balance}.score,.step .big{font-variant-numeric:tabular-nums}
+a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h1{font-size:22px;margin:0 0 4px;color:var(--accent)}h2{font-size:17px;margin:28px 0 10px;color:var(--accent)}
 .dim{color:var(--dim)}a{color:var(--accent)}
 .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
@@ -214,8 +224,9 @@ td ul{margin:0;padding-left:16px}td li{margin:0 0 2px}
 .score{font-size:18px;font-weight:700}.tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--dim)}
 .signals{color:var(--dim);font-size:12px}tr.done{opacity:.55}
 details{margin:12px 0}summary{cursor:pointer;font-weight:600;color:var(--accent)}
-.wrap{overflow-x:auto}
-@media (max-width:900px){.flow{grid-template-columns:repeat(2,1fr)}}
+.wrap{overflow-x:auto;min-width:0}.wrap table{min-width:960px}
+@media (max-width:900px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.flow{grid-template-columns:minmax(0,1fr)}}
 """
 
 JS = """
@@ -234,7 +245,7 @@ JS = """
     document.querySelectorAll('#main tbody tr').forEach(function(tr){
       var ok=(!t||tr.dataset.text.indexOf(t)>=0)&&(!fa.value||tr.dataset.action===fa.value)
         &&(!fm.value||tr.dataset.modality===fm.value)&&(!fr.value||tr.dataset.risk===fr.value);
-      tr.style.display=ok?'':'none';
+      tr.hidden=!ok;
     });
   }
   [q,fa,fm,fr].forEach(function(el){el.addEventListener('input',apply);el.addEventListener('change',apply);});
@@ -242,7 +253,22 @@ JS = """
 """
 
 
-def render(data: dict, today: date, title: str | None) -> str:
+def render(data: dict, today: date, title: str | None, artifact: bool = False) -> str:
+    """The page. `artifact` drops the document wrapper (the claude.ai Artifact publisher adds
+    its own <!doctype>/<head>/<body>) and declares the safe-area side gutter it relies on."""
+    page_title = f"Ofertas de {title}" if title else "Revisión de ofertas"
+    head = (
+        f'<title>{esc(page_title)}</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n<style>{CSS}</style>\n'
+        if artifact
+        else '<!doctype html>\n<html lang="es"><head><meta charset="utf-8">'
+        f'<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+        f"<title>{esc(page_title)}</title><style>{CSS}</style></head><body>\n"
+    )
+    tail = "" if artifact else "</body></html>\n"
+    return head + _body(data, today, title) + tail
+
+
+def _body(data: dict, today: date, title: str | None) -> str:
     labels = {k: (label, css) for k, label, css in ACTIONS}
     sl = data["shortlist"]
     ready = data["actions"]["ya"] + data["actions"]["pronto"]
@@ -297,10 +323,7 @@ def render(data: dict, today: date, title: str | None) -> str:
     )
     heading = f"Revisión de ofertas · {esc(title)}" if title else "Revisión de ofertas"
 
-    return f"""<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Revisión de ofertas</title><style>{CSS}</style></head><body>
-<header><h1>{heading}</h1>
+    return f"""<header><h1>{heading}</h1>
 <div class="dim">Generado el {esc(today.isoformat())} desde <code>seen_jobs.json</code>, la frescura y <code>company_research/</code>.
 El encaje es un triaje de <code>/rank</code>; <code>/apply</code> vuelve a evaluar antes de postular.</div>
 <div class="flow">{flow}</div></header>
@@ -319,7 +342,7 @@ el vencimiento del portal no es una fecha de cierre (<code>10-peru-market.md</co
 Reputación: cada calificación con su n, área y fecha; con menos de {SMALL_N} opiniones es referencial y una certificación pagada no es independiente (sección 11).</p>
 </main>
 <footer class="dim">Generado por Claude Code · ai-job-search-pe · {esc(today.isoformat())}</footer>
-<script>{JS}</script></body></html>
+<script>{JS}</script>
 """
 
 
@@ -335,6 +358,8 @@ def main(argv=None) -> int:
     ap.add_argument("--research", type=Path, default=Path("company_research"))
     ap.add_argument("--out", type=Path, default=Path("reports/revision-ofertas.html"))
     ap.add_argument("--titulo", help="name shown in the heading, e.g. the candidate's")
+    ap.add_argument("--artifact", action="store_true",
+                    help="omit the document wrapper, for publishing as a claude.ai Artifact")
     ap.add_argument("--today", type=date.fromisoformat, default=date.today(), help="YYYY-MM-DD (for testing)")
     args = ap.parse_args(argv)
 
@@ -352,7 +377,7 @@ def main(argv=None) -> int:
             return 1
     data = collect(state, fresh_rows, args.research)
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(render(data, args.today, args.titulo), encoding="utf-8")
+    args.out.write_text(render(data, args.today, args.titulo, args.artifact), encoding="utf-8")
     a = data["actions"]
     print(f"{args.out}: {len(data['ranked'])} evaluadas · postular {a['ya'] + a['pronto']} · "
           f"confirmar {a['confirmar'] + a['antes']} · si hay tiempo {a['tiempo']} · descartar {a['descartar']}")
