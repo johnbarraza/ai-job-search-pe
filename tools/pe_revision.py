@@ -193,22 +193,23 @@ def context_html(ctx: dict | None) -> str:
         chips += [f'<span class="chip zone">{esc(z)}</span>' for z in lg.get("zones") or []]
     if not chips:
         chips.append('<span class="chip muted">Lugar sin dato</span>')
-    place = '<div class="ctx-row"><span class="ctx-k">Lugar</span>' + "".join(chips) + _evidence(lg.get("source"), lg.get("confidence")) + "</div>"
     notes = []
     if lg.get("address"):
         notes.append(esc(lg["address"]))
     if lg.get("residence_required"):
         notes.append("Pide vivir en o cerca de " + esc(", ".join(lg["residence_required"])))
-    if notes:
-        place += '<div class="ctx-note">' + "<br>".join(notes) + "</div>"
+    note_html = "".join(f'<div class="ctx-note">{n}</div>' for n in notes)
+    place = (f'<div class="ctx-row"><span class="ctx-k">Lugar</span><div class="ctx-v">{"".join(chips)}'
+             f'{_evidence(lg.get("source"), lg.get("confidence"))}{note_html}</div></div>')
 
-    kinds = [label for label, on in (("Consultora", rb.get("staffing")), ("Recluta para un cliente", rb.get("for_client")),
-                                     ("Empresa anónima", rb.get("anonymous"))) if on]
-    sector_chips = ([f'<span class="chip sector">{esc(rb["label"])}</span>'] if rb.get("label")
+    label = rb.get("label") or ""
+    kinds = [k for k, on in (("Consultora", rb.get("staffing") and "consultor" not in label.lower()),
+                             ("Recluta para un cliente", rb.get("for_client")), ("Empresa anónima", rb.get("anonymous"))) if on]
+    sector_chips = ([f'<span class="chip sector">{esc(label)}</span>'] if label
                     else ['<span class="chip muted">Rubro sin identificar</span>'])
     sector_chips += [f'<span class="chip kind">{esc(k)}</span>' for k in kinds]
-    sector = ('<div class="ctx-row"><span class="ctx-k">Rubro</span>' + "".join(sector_chips)
-              + _evidence(rb.get("source"), rb.get("confidence")) + "</div>")
+    sector = (f'<div class="ctx-row"><span class="ctx-k">Rubro</span><div class="ctx-v">{"".join(sector_chips)}'
+              f'{_evidence(rb.get("source"), rb.get("confidence"))}</div></div>')
 
     buttons = []
     if not lg.get("remote") and (lg.get("address") or districts):
@@ -219,7 +220,8 @@ def context_html(ctx: dict | None) -> str:
     for key, label in (("website", "Web"), ("linkedin", "LinkedIn"), ("computrabajo", "Computrabajo")):
         if isinstance(links.get(key), str) and re.match(r"^https?://", links[key]):  # the file may be hand-edited
             buttons.append(f'<a class="btn" href="{esc(links[key])}" target="_blank" rel="noopener noreferrer">{label}</a>')
-    actions = f'<div class="ctx-btns">{"".join(buttons)}</div>' if buttons else ""
+    actions = (f'<div class="ctx-row"><span class="ctx-k"></span><div class="ctx-v ctx-btns">{"".join(buttons)}</div></div>'
+               if buttons else "")
     return f'<div class="ctx">{place}{sector}{actions}</div>'
 
 
@@ -297,18 +299,21 @@ td ul{margin:0;padding-left:16px}td li{margin:0 0 2px}
 .score{font-size:18px;font-weight:700}.tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--dim)}
 .signals{color:var(--dim);font-size:12px}tr.done{opacity:.55}
 .ctx{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;display:grid;gap:5px}
-.ctx-row{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
-.ctx-k{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;min-width:44px}
+.ctx-row{display:grid;grid-template-columns:48px minmax(0,1fr);gap:6px;align-items:start}
+.ctx-k{font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;padding-top:3px}
+.ctx-v{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
+.ctx-v .ev,.ctx-v .ctx-note{flex-basis:100%}
+table td:nth-child(4){min-width:300px;width:30%}
 .chip{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;line-height:1.6;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 .chip.place{background:var(--chip-place);border-color:transparent;font-weight:600}
 .chip.zone{color:var(--dim)}
 .chip.sector{background:var(--chip-sector);border-color:transparent}
 .chip.kind{background:var(--warn-bg);color:var(--warn);border-color:transparent}
 .chip.muted{color:var(--dim);border-style:dashed}
-.ev{font-size:11px;color:var(--dim);margin-left:2px}
+.ev{font-size:11px;color:var(--dim)}
 .dots{letter-spacing:1px}.dots.conf-alta{color:var(--go)}.dots.conf-media{color:var(--warn)}.dots.conf-baja{color:var(--stop)}
-.ctx-note{color:var(--dim);font-size:11px;padding-left:48px}
-.ctx-btns{display:flex;flex-wrap:wrap;gap:6px;padding-left:48px}
+.ctx-note{color:var(--dim);font-size:11px}
+.ctx-btns{gap:6px}
 .btn{display:inline-block;padding:2px 10px;border:1px solid var(--accent);border-radius:6px;font-size:12px;text-decoration:none;color:var(--accent)}
 .btn:hover{background:var(--accent);color:var(--card)}
 .btn:focus-visible,button.sort:focus-visible{outline:2px solid var(--accent);outline-offset:2px}

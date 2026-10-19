@@ -142,7 +142,10 @@ class ContextAndSorting(unittest.TestCase):
         html = pr.context_html(self.CTX)
         self.assertIn('<span class="chip place">Santiago de Surco</span>', html)
         self.assertIn('<span class="chip zone">Lima Moderna</span>', html)
-        self.assertIn('<span class="chip kind">Consultora</span>', html)
+        # the sector already says "Consultora": no second chip repeating it
+        self.assertNotIn('<span class="chip kind">Consultora</span>', html)
+        other = pr.context_html(dict(self.CTX, rubro=dict(self.CTX["rubro"], label="Servicios Profesionales")))
+        self.assertIn('<span class="chip kind">Consultora</span>', other)
         self.assertIn("dato del portal", html)
         self.assertIn("●●○", html)
         self.assertIn("https://www.google.com/maps/search/?api=1&amp;query=Santiago+de+Surco%2C+Lima%2C+Per%C3%BA", html)
