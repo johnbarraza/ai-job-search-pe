@@ -227,3 +227,21 @@ class Deadlines(unittest.TestCase):
         self.assertIn("Formulario del BCRP", page)
         self.assertIn('id="fc"', page)
         self.assertIn('id="cnt"', page)
+
+
+class Contacts(unittest.TestCase):
+    def test_area_comes_from_the_title_without_level_words(self):
+        self.assertEqual(pr.area_of("Practicante - Dpto. de Investigación Financiera"), "Investigación Financiera")
+        self.assertEqual(pr.area_of("Practicante Pre Profesional de Riesgo de Mercado y Liquidez"), "Riesgo de Mercado y Liquidez")
+        self.assertEqual(pr.area_of("Programa de Prácticas 2027"), "")
+
+    def test_links_use_the_company_people_page_and_the_named_contact(self):
+        r = ranked(company="BTG Pactual Perú", title="Practicante Riesgo de Mercado y Liquidez", contact="Ana Pérez",
+                   context={"links": {"linkedin": "https://pe.linkedin.com/company/btgpactual"}})
+        html = pr.contacts_html(r)
+        self.assertIn("https://www.linkedin.com/company/btgpactual/people/?keywords=Riesgo+de+Mercado+y+Liquidez", html)
+        self.assertIn("search/results/people/?keywords=Ana+P%C3%A9rez+BTG+Pactual+Per%C3%BA", html)
+        self.assertIn('rel="noopener noreferrer"', html)
+
+    def test_anonymous_employers_get_no_contact_links(self):
+        self.assertEqual(pr.contacts_html(ranked(company="Importante empresa del sector")), "")

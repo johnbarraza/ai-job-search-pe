@@ -135,6 +135,57 @@ def logo_uri(research_dir: Path, logos: dict, company: str) -> str | None:
     return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
 
 
+# Words that name the position level, not the team: what is left of a title is the area.
+LEVEL_WORDS = re.compile(
+    r"\b(practicantes?|pr[aá]cticas?|pre[- ]?profesional(?:es)?|profesional(?:es)?|preprofesional(?:es)?|programa|"
+    r"trainee|asistente|analista|auxiliar|jr|junior|senior|sr|intern(?:ship)?|associates?|summer|off-cycle|"
+    r"subgerencia|gerencia|departamento|dpto|grupo funcional|[aá]rea|per[uú]|lima|h[ií]brido|presencial|remoto|\d{4})\b",
+    re.I,
+)
+ANONYMOUS = re.compile(r"confidencial|importante empresa|empleador no divulgado", re.I)
+
+
+def area_of(title: str) -> str:
+    """The team a posting belongs to, from its title: "Practicante - Dpto. de Investigación
+    Financiera" -> "Investigación Financiera". Empty when the title names only a level."""
+    text = re.sub(r"\(.*?\)", " ", title or "")
+    text = LEVEL_WORDS.sub(" ", text)
+    text = re.sub(r"[-–/|·,:.]", " ", text)
+    words = text.split()
+    while words and words[0].lower() in ("de", "del", "en", "y", "la", "el", "para"):
+        words.pop(0)
+    while words and words[-1].lower() in ("de", "del", "en", "y", "la", "el", "para"):
+        words.pop()
+    return " ".join(words[:5])
+
+
+def people_search(keywords: str) -> str:
+    return "https://www.linkedin.com/search/results/people/?keywords=" + quote_plus(keywords)
+
+
+def contacts_html(r: dict) -> str:
+    """Links to find the team's leads, the recruiters and the named contact on LinkedIn. They are
+    searches the candidate opens with their own account: nothing here fetches a profile."""
+    company = (r.get("company") or "").strip()
+    if not company or ANONYMOUS.search(company):
+        return ""
+    area = area_of(r.get("title") or "")
+    links = []
+    li = (((r.get("context") or {}).get("links") or {}).get("linkedin")) or ""
+    m = re.match(r"^https?://[a-z]{0,3}\.?linkedin\.com/company/([^/?#]+)", li)
+    if m:
+        base = f"https://www.linkedin.com/company/{m.group(1)}/people/"
+        links.append(link(base + ("?keywords=" + quote_plus(area) if area else ""), "Equipo del área"))
+    links.append(link(people_search(f"jefe {area} {company}" if area else f"gerente {company}"), "Jefes"))
+    links.append(link(people_search(f"reclutamiento talento {company}"), "Reclutamiento"))
+    contact = r.get("contact")
+    if isinstance(contact, str) and contact.strip():
+        links.append(link(people_search(f"{contact} {company}"), contact.strip()))
+    google = f'site:linkedin.com/in "{company}" (jefe OR gerente OR head) {area}'.strip()
+    links.append(link("https://www.google.com/search?q=" + quote_plus(google), "Google"))
+    return '<div class="how"><b>Contactos:</b> ' + " · ".join(links) + "</div>"
+
+
 def logo_html(r: dict) -> str:
     if r.get("logo"):
         return f'<img class="logo" src="{esc(r["logo"])}" alt="" width="28" height="28">'
@@ -568,6 +619,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
         age = fresh.get("age_days")
         closes = r.get("closes") or {"label": "—", "bucket": "sin", "css": "", "sort": 99999}
         how = f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else ""
+        how += contacts_html(r)
         # Sort keys, one per sortable column (see the header buttons and the JS below).
         sort_keys = {
             "accion": ACTION_ORDER[r["action"]], "encaje": r.get("rank_score") or 0,
@@ -629,6 +681,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
             f'<li><span class="close {esc(r["closes"]["css"])}">{esc(r["closes"]["label"])}</span> '
             f'<b>{esc(r.get("rank_score"))}</b> · {link(r.get("url"), r.get("title"))} · {esc(r.get("company"))}'
             + (f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else "")
+            + contacts_html(r)
             + "</li>"
             for r in soon
         )
