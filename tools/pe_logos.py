@@ -70,9 +70,13 @@ def walk(value):
             yield from walk(v)
 
 
-def posting_logos(paths) -> dict[str, str]:
-    """company_file -> logo URL found on the postings themselves."""
-    found: dict[str, str] = {}
+# Anonymous employers share one name across unrelated companies: never give them a logo.
+GENERIC = re.compile(r"confidencial|importante empresa|empleador no divulgado|empresa confidencial", re.I)
+
+
+def posting_logos(paths) -> dict[str, tuple[str, str]]:
+    """company_file -> (company name as posted, logo URL) found on the postings themselves."""
+    found: dict[str, tuple[str, str]] = {}
     for path in paths:
         try:
             data = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -80,9 +84,23 @@ def posting_logos(paths) -> dict[str, str]:
             continue
         for obj in walk(data):
             name, logo = obj.get("company"), obj.get("companyLogo")
-            if isinstance(name, str) and name.strip() and allowed(logo):
-                found.setdefault(company_file(name), logo)
+            if isinstance(name, str) and name.strip() and not GENERIC.search(name) and allowed(logo):
+                found.setdefault(company_file(name), (name, logo))
     return found
+
+
+def load_matcher():
+    spec = importlib.util.spec_from_file_location("salary_lookup", ROOT / "salary_lookup.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.match_score
+
+
+def fuzzy_posting_logo(match_score, posted: dict[str, tuple[str, str]], name: str) -> str | None:
+    """A posting logo under a slightly different company name ("Banco Santander Perú" vs
+    "Santander Perú"): the best match at MIN_MATCH or above."""
+    best = max(((match_score(name, n), url) for n, url in posted.values()), default=(0, None))
+    return best[1] if best[0] >= MIN_MATCH else None
 
 
 def companies_in_state(path: Path) -> list[str]:
@@ -156,18 +174,23 @@ def main(argv=None) -> int:
     except (OSError, json.JSONDecodeError):
         index = {}
 
+    posted = posting_logos(args.inputs)
+    names = [n for n in companies_in_state(args.state) if not GENERIC.search(n)]
     wanted: dict[str, tuple[str, str, str]] = {}  # key -> (name, url, origin)
-    for key, url in posting_logos(args.inputs).items():
-        wanted[key] = (key, url, "aviso")
-    names = companies_in_state(args.state)
-    if not args.no_myworkin:
-        mw, companies = load_myworkin()
-        for name in names:
-            key = company_file(name)
-            if key in wanted:
-                continue
-            url = myworkin_logo(mw, companies, name)
-            if url:
+    if not names:  # no ranked jobs yet: cache every logo the postings carry
+        wanted = {key: (name, url, "aviso") for key, (name, url) in posted.items()}
+    match_score = load_matcher()
+    mw = companies = None
+    for name in names:
+        key = company_file(name)
+        if key in posted:
+            wanted[key] = (name, posted[key][1], "aviso")
+        elif url := fuzzy_posting_logo(match_score, posted, name):
+            wanted[key] = (name, url, "aviso (nombre parecido)")
+        elif not args.no_myworkin:
+            if mw is None:
+                mw, companies = load_myworkin()
+            if url := myworkin_logo(mw, companies, name):
                 wanted[key] = (name, url, "MyWorkIn")
 
     got = skipped = failed = 0

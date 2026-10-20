@@ -49,6 +49,23 @@ class PostingLogos(unittest.TestCase):
             ]}), encoding="utf-8")
             found = pl.posting_logos([detail, search])
         self.assertEqual(set(found), {"banco-falabella-perú", "mapfre-peru"})
+        self.assertEqual(found["mapfre-peru"], ("MAPFRE PERU", "https://imgbum.jobscdn.com/logo.jpg"))
+
+    def test_anonymous_employers_never_get_a_logo(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "s.json"
+            path.write_text(json.dumps({"results": [
+                {"company": "Importante empresa del sector", "companyLogo": "https://ii.ct-stc.com/3/logos/empresas/x.png"},
+                {"company": "Confidencial", "companyLogo": "https://imgbum.jobscdn.com/y.jpg"},
+            ]}), encoding="utf-8")
+            self.assertEqual(pl.posting_logos([path]), {})
+
+    def test_a_close_company_name_reuses_the_posting_logo(self):
+        posted = {"santander-perú": ("Santander Perú", "https://imgbum.jobscdn.com/s.jpg"),
+                  "banco-falabella-perú": ("Banco Falabella Perú", "https://media.licdn.com/f")}
+        match = pl.load_matcher()
+        self.assertEqual(pl.fuzzy_posting_logo(match, posted, "Banco Santander Perú"), "https://imgbum.jobscdn.com/s.jpg")
+        self.assertIsNone(pl.fuzzy_posting_logo(match, posted, "VVVM Consulting"))
 
     def test_keys_match_the_review_page_lookup(self):
         self.assertEqual(pl.company_file("  Banco  Falabella Perú "), "banco-falabella-perú")
