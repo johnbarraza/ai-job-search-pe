@@ -243,5 +243,12 @@ class Contacts(unittest.TestCase):
         self.assertIn("search/results/people/?keywords=Ana+P%C3%A9rez+BTG+Pactual+Per%C3%BA", html)
         self.assertIn('rel="noopener noreferrer"', html)
 
+    def test_search_names_drop_legal_suffixes_and_prefer_the_acronym(self):
+        self.assertEqual(pr.company_query("Banco Central de Reserva del Perú (BCRP)"), "BCRP")
+        self.assertEqual(pr.company_query("Credicorp Ltd."), "Credicorp")
+        self.assertEqual(pr.company_query("ORYGEN PERÚ S.A.A."), "ORYGEN PERÚ")
+        self.assertEqual(pr.company_query("Touch Consulting S.A.C"), "Touch Consulting")
+        self.assertEqual(pr.area_of("Practicante de Planeamiento Financiero y Gestión de Portafolio"), "Planeamiento Financiero y Gestión")
+
     def test_anonymous_employers_get_no_contact_links(self):
         self.assertEqual(pr.contacts_html(ranked(company="Importante empresa del sector")), "")

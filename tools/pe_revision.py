@@ -151,12 +151,28 @@ def area_of(title: str) -> str:
     text = re.sub(r"\(.*?\)", " ", title or "")
     text = LEVEL_WORDS.sub(" ", text)
     text = re.sub(r"[-–/|·,:.]", " ", text)
+    stop = ("de", "del", "en", "y", "la", "el", "para", "e")
     words = text.split()
-    while words and words[0].lower() in ("de", "del", "en", "y", "la", "el", "para"):
+    while words and words[0].lower() in stop:
         words.pop(0)
-    while words and words[-1].lower() in ("de", "del", "en", "y", "la", "el", "para"):
+    words = words[:5]
+    while words and words[-1].lower() in stop:
         words.pop()
-    return " ".join(words[:5])
+    return " ".join(words)
+
+
+LEGAL_SUFFIX = re.compile(r"\b(s\.?\s?a\.?\s?[ac]\.?|s\.?\s?a\.?|s\.?\s?r\.?\s?l\.?|e\.?\s?i\.?\s?r\.?\s?l\.?|ltd\.?|llc|inc\.?|sac|saa)(?=\s|$)", re.I)
+
+
+def company_query(company: str) -> str:
+    """The company as people search it: its acronym when the name carries one ("Banco Central de
+    Reserva del Perú (BCRP)" -> "BCRP"), without legal suffixes ("Credicorp Ltd." -> "Credicorp")."""
+    acronym = re.search(r"\(([A-ZÁÉÍÓÚÑ]{2,6})\)", company or "")
+    if acronym:
+        return acronym.group(1)
+    name = re.sub(r"\(.*?\)", " ", company or "")
+    name = LEGAL_SUFFIX.sub(" ", name)
+    return " ".join(name.replace(",", " ").split())
 
 
 def people_search(keywords: str) -> str:
@@ -170,18 +186,19 @@ def contacts_html(r: dict) -> str:
     if not company or ANONYMOUS.search(company):
         return ""
     area = area_of(r.get("title") or "")
+    name = company_query(company) or company
     links = []
     li = (((r.get("context") or {}).get("links") or {}).get("linkedin")) or ""
     m = re.match(r"^https?://[a-z]{0,3}\.?linkedin\.com/company/([^/?#]+)", li)
     if m:
         base = f"https://www.linkedin.com/company/{m.group(1)}/people/"
         links.append(link(base + ("?keywords=" + quote_plus(area) if area else ""), "Equipo del área"))
-    links.append(link(people_search(f"jefe {area} {company}" if area else f"gerente {company}"), "Jefes"))
-    links.append(link(people_search(f"reclutamiento talento {company}"), "Reclutamiento"))
+    links.append(link(people_search(f"jefe {area} {name}" if area else f"gerente {name}"), "Jefes"))
+    links.append(link(people_search(f"reclutamiento talento {name}"), "Reclutamiento"))
     contact = r.get("contact")
     if isinstance(contact, str) and contact.strip():
-        links.append(link(people_search(f"{contact} {company}"), contact.strip()))
-    google = f'site:linkedin.com/in "{company}" (jefe OR gerente OR head) {area}'.strip()
+        links.append(link(people_search(f"{contact.strip()} {name}"), contact.strip()))
+    google = f'site:linkedin.com/in "{name}" (jefe OR gerente OR head) {area}'.strip()
     links.append(link("https://www.google.com/search?q=" + quote_plus(google), "Google"))
     return '<div class="how"><b>Contactos:</b> ' + " · ".join(links) + "</div>"
 
