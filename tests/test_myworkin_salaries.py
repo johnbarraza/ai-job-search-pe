@@ -16,6 +16,7 @@ spec.loader.exec_module(mw)
 
 INDEX_HTML = """
 <a data-spotlight="true" class="spotlight-card flex" href="/salaries/ferreycorp"><div class="flex items-start gap-3">
+<div class="relative"><img alt="" srcSet="/_next/image?url=https%3A%2F%2Ffirebasestorage.googleapis.com%2Fv0%2Fb%2Fcore-commons.firebasestorage.app%2Fo%2Fcompany_logos%252Fferreycorp.jpg%3Falt%3Dmedia&amp;w=32&amp;q=75 32w"/></div>
 <div class="min-w-0 flex-1"><h3 class="truncate font-display font-bold">Ferreycorp</h3>
 <p class="truncate text-sm text-muted-foreground">Machinery</p></div></div>
 <div class="mt-auto border-t border-border/60 pt-4"><p class="font-display font-bold">2<!-- --> salarios</p></div></a>
@@ -48,6 +49,11 @@ class ParseIndex(unittest.TestCase):
         self.assertEqual(companies[1]["name"], "Rímac Seguros")
         self.assertEqual(companies[1]["sector"], "Insurance")
         self.assertEqual(companies[0]["reports"], 2)
+        self.assertEqual(
+            companies[0]["logo"],
+            "https://firebasestorage.googleapis.com/v0/b/core-commons.firebasestorage.app/o/company_logos%2Fferreycorp.jpg?alt=media",
+        )
+        self.assertIsNone(companies[1]["logo"])
 
     def test_links_without_a_card_heading_are_skipped(self):
         self.assertEqual(mw.parse_index('<a href="/salaries/x">Ver</a>'), [])

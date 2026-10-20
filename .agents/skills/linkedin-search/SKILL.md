@@ -66,6 +66,8 @@ bun run .agents/skills/linkedin-search/cli/src/cli.ts detail <id|url> [--format 
 LinkedIn `jobs/view/...` URL or a `urn:li:jobPosting:...` URN. Returns the full description,
 seniority, employment type, job function, and industries.
 
+`companyLogo` (search cards and detail) is the company-logo image URL on media.licdn.com, or null.
+
 Freshness fields from the top card: `postedAgo` ("1 week ago", "Reposted 3 days ago"),
 `date` derived from it on the Lima calendar (coarse: "1 week ago" spans 7-13 days; search
 cards carry the exact date), `reposted`, `applicants` (number; the lower bound for "Over 200

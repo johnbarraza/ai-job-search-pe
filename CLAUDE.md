@@ -100,6 +100,7 @@ automatically from your Languages table above - don't duplicate them here. -->
 - `tools/pe_frescura.py` - posting freshness and ghost-job risk from the portal CLIs' `detail` output (age from the original publication, renewals, reposts, portal expiry, applicants)
 - `tools/pe_contexto.py` - workplace district and Lima zone, and the employer's sector, each with its source and confidence (posting, portal, client site, web)
 - `tools/pe_revision.py` - offline HTML review page of a search (`reports/revision-ofertas.html`): fit from `/rank`, freshness, employer ratings from `company_research/`, and the next action per job
+- `tools/pe_logos.py` - employer logos for the review page, from the postings (`companyLogo` in the portal CLIs) or MyWorkIn, cached as small PNGs in `company_research/logos/`
 - `tools/perfiles.py` / `perfiles/<nombre>/` - one workspace per person (`/setup --user <nombre>`): a git worktree on a local `perfil/<nombre>` branch that a pre-push hook never lets reach a remote; open Claude Code inside it to work on that person's search
 
 ## Workflow for New Job Applications

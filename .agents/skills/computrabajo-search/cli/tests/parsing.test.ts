@@ -795,3 +795,15 @@ describe("normalizeCompanySlug", () => {
     expect(normalizeCompanySlug("https://example.com/adecco")).toBeNull();
   });
 });
+
+describe("companyLogo", () => {
+  test("the detail page carries the employer logo", () => {
+    const url = "https://ii.ct-stc.com/3/logos/empresas/2023/03/27/llamagas-987D5429thumbnail.png";
+    const html = DETAIL_HTML + `<img src="${url}" alt="Llamagas logo">`;
+    expect(parseJobDetail(html, "X").companyLogo).toBe(url);
+  });
+  test("site images are not employer logos", () => {
+    const html = DETAIL_HTML + `<img src="https://cp.ct-stc.com/web8/c/img/logos/logoct.svg">`;
+    expect(parseJobDetail(html, "X").companyLogo).toBeNull();
+  });
+});

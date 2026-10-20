@@ -336,3 +336,21 @@ describe("modality", () => {
     expect(job.level).toBe("trainee"); // title says nothing, so nivelLaboral decides
   });
 });
+
+describe("companyLogo", () => {
+  const base: RawSearchItem = { id: 1, titulo: "Practicante", empresa: "Acme", localizacion: null, fechaPublicacion: null };
+  test("search items pass the employer logo through", () => {
+    const url = "https://imgbum.jobscdn.com/portal/img/empresas/logoMainPic_1_bum.jpg";
+    expect(mapSearchItem({ ...base, logoURL: url }).companyLogo).toBe(url);
+  });
+  test("confidential postings and non-http values get no logo", () => {
+    expect(mapSearchItem({ ...base, confidencial: true, logoURL: "https://x/y.jpg" }).companyLogo).toBeNull();
+    expect(mapSearchItem({ ...base, logoURL: "javascript:alert(1)" }).companyLogo).toBeNull();
+    expect(mapSearchItem(base).companyLogo).toBeNull();
+  });
+  test("details read empresa.logoURL", () => {
+    const url = "https://imgbum.jobscdn.com/portal/img/empresas/logoMainPic_2_bum.jpg";
+    const raw: RawAvisoDetail = { id: 2, titulo: "Practicante", descripcion: null, empresa: { denominacion: "Acme", logoURL: url } };
+    expect(mapAvisoDetail(raw).companyLogo).toBe(url);
+  });
+});

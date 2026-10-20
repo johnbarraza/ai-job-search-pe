@@ -282,9 +282,12 @@ muestra cada portal **no es la edad del aviso**:
 | LinkedIn | La fecha del último *repost* | Ids secuenciales, igual que Bumeran | `postedAgo`, `reposted`, `applicants` ("189 applicants"), `isActive` |
 
 Reglas:
-- **Edad desde la publicación original**, nunca desde la renovación. ≤ 7 días: *fresca*
-  (postula ya); 8 a 21: *en curso*; 22 a 45: *vieja*; más de 45: *muy vieja*. En
-  Computrabajo es un mínimo ("≥ 16 d"): un aviso "fresco" ahí puede ser una republicación.
+- **Edad desde la publicación original**, nunca desde la renovación. La **frescura** se lee
+  hacia arriba: ≤ 3 días *muy alta*, 4 a 7 *alta* (postula ya), 8 a 21 *media*, más de 21
+  *baja*; un aviso cerrado o vencido es *baja* a cualquier edad. Es un dato distinto del
+  **riesgo de ghost job** (bajo, medio, alto): un aviso de 3 días con 200+ postulantes tiene
+  frescura muy alta y riesgo medio. En Computrabajo la edad es un mínimo ("≥ 16 d"): un aviso
+  "fresco" ahí puede ser una republicación.
 - **El vencimiento del portal no es una fecha de cierre.** `validThrough` sale del plan
   contratado (60 días en Computrabajo, ~90 en Bumeran); solo es una fecha límite real cuando
   la oferta la escribe o en una convocatoria pública (cronograma de las bases). Nunca la

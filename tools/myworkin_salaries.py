@@ -32,6 +32,7 @@ import re
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -115,8 +116,12 @@ def _clean(fragment):
     return re.sub(r"\s+", " ", html.unescape(text)).strip()
 
 
+# The card's logo goes through Next's image proxy; the original lives in Firebase Storage.
+LOGO = re.compile(r"/_next/image\?url=(https?%3A%2F%2Ffirebasestorage\.googleapis\.com[^&\"\s]+)")
+
+
 def parse_index(page):
-    """Company cards on /salaries: [{slug, name, sector, reports}]."""
+    """Company cards on /salaries: [{slug, name, sector, reports, logo}]."""
     companies = []
     seen = set()
     for m in re.finditer(r'<a[^>]*href="/salaries/([a-z0-9-]+)"[^>]*>(.*?)</a>', page, flags=re.S):
@@ -129,11 +134,13 @@ def parse_index(page):
         seen.add(slug)
         sector = re.search(r"<p[^>]*text-muted-foreground[^>]*>(.*?)</p>", card, flags=re.S)
         reports = re.search(r">\s*(\d+)\s*(?:<!--\s*-->)?\s*salarios?\s*<", card)
+        logo = LOGO.search(card)
         companies.append({
             "slug": slug,
             "name": _clean(name.group(1)),
             "sector": _clean(sector.group(1)) if sector else None,
             "reports": int(reports.group(1)) if reports else None,
+            "logo": urllib.parse.unquote(html.unescape(logo.group(1))) if logo else None,
         })
     return companies
 

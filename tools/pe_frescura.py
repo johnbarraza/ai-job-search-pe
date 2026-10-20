@@ -33,6 +33,7 @@ import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
+VERY_FRESH_DAYS = 3
 FRESH_DAYS = 7  # the window in which most shortlists form
 ACTIVE_DAYS = 21
 OLD_DAYS = 45
@@ -40,6 +41,8 @@ REPOST_GAP_DAYS = 10  # id-implied creation this much earlier than the shown dat
 MANY_APPLICANTS = 200
 SEQUENTIAL_ID_PORTALS = ("bumeran", "linkedin")
 RISK_ORDER = {"bajo": 0, "medio": 1, "alto": 2}
+# Freshness reads the other way round from risk: "muy alta" is the newest posting.
+FRESHNESS_ORDER = {"muy alta": 0, "alta": 1, "media": 2, "baja": 3, "sin fecha": 4}
 
 
 def fold(text) -> str:
@@ -200,6 +203,22 @@ def annotate(posting: dict, today: date, calendar: IdCalendar, copies: int) -> d
     else:
         window = "muy vieja"
 
+    # Freshness is the age alone (closed or expired postings are never fresh); the
+    # ghost-job risk stays a separate signal, so a 3-day-old posting with 200+
+    # applicants is still "muy alta" freshness at "medio" risk.
+    if closed or expired:
+        freshness = "baja"
+    elif age is None:
+        freshness = "sin fecha"
+    elif age <= VERY_FRESH_DAYS:
+        freshness = "muy alta"
+    elif age <= FRESH_DAYS:
+        freshness = "alta"
+    elif age <= ACTIVE_DAYS:
+        freshness = "media"
+    else:
+        freshness = "baja"
+
     if risk == "alto":
         advice = "no priorizar: probable plaza cubierta, pool permanente o aviso olvidado"
     elif risk == "medio":
@@ -225,6 +244,7 @@ def annotate(posting: dict, today: date, calendar: IdCalendar, copies: int) -> d
         "valid_through": expiry.isoformat() if expiry else None,
         "applicants": applicants,
         "window": window,
+        "freshness": freshness,
         "risk": risk,
         "signals": signals,
         "advice": advice,
@@ -253,7 +273,7 @@ def render(rows: list[dict], today: date) -> str:
         floor = "≥" if r["age_is_minimum"] else ""
         age = f"{floor}{r['age_days']} d" if r["age_days"] is not None else "?"
         out.append(
-            f"\n[{r['risk'].upper():<5}] {r['window']:<9} {age:>5} · publicada {r['original_date'] or '?'}"
+            f"\n[frescura {r['freshness']:<9}] riesgo {r['risk']:<5} {age:>5} · publicada {r['original_date'] or '?'}"
             f" · {r['company'] or '—'} · {r['title'] or '—'}"
         )
         if r["signals"]:

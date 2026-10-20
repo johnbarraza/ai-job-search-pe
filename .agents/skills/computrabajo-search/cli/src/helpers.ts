@@ -99,6 +99,8 @@ export interface JobCard {
   title: string
   company: string | null
   companyUrl: string | null
+  /** Employer logo (ii.ct-stc.com); only the detail page carries it, search cards leave it null. */
+  companyLogo: string | null
   location: string | null
   date: string | null
   url: string
@@ -459,7 +461,7 @@ function parseOneCard(chunk: string, now: Date): JobCard | null {
   const workMatch = chunk.match(/<span class="icon i_home(?:_office)?"><\/span>\s*([\s\S]*?)\s*<\/span>/)
   const workplaceType = workMatch ? clean(workMatch[1]) : null
 
-  return { id, title, company, companyUrl, location, date, url, salary, workplaceType, modality: modalityFromChip(workplaceType), level: classifyLevel(title) }
+  return { id, title, company, companyUrl, companyLogo: null, location, date, url, salary, workplaceType, modality: modalityFromChip(workplaceType), level: classifyLevel(title) }
 }
 
 /** Classify tag chips (salary / contract type / schedule / workplace) by keyword. */
@@ -516,6 +518,8 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     /class="info_company[^"]*"[\s\S]*?<a class="dIB fs16 js-o-link" href="([^"]+)"[^>]*>/,
   )
   const companyUrl = companyLinkMatch ? new URL(decodeHtmlEntities(companyLinkMatch[1]), BASE_URL).toString() : null
+  const logoMatch = html.match(/<img src="(https:\/\/ii\.ct-stc\.com\/[^"]*\/logos\/empresas\/[^"]+)"/)
+  const companyLogo = logoMatch ? decodeHtmlEntities(logoMatch[1]) : null
 
   // Tag chips (salary / contract / schedule / workplace) right after the
   // "Descripción de la oferta" heading.
@@ -586,6 +590,7 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     title,
     company,
     companyUrl,
+    companyLogo,
     location,
     date,
     url: `${BASE_URL}/ofertas-de-trabajo/oferta-de-trabajo-de-x-${id}`,

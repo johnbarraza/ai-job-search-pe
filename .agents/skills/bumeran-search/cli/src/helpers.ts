@@ -82,6 +82,8 @@ export interface JobCard {
   title: string
   company: string | null
   companyUrl: string | null
+  /** Employer logo (empresa.logoURL); null for confidential postings. */
+  companyLogo: string | null
   location: string | null
   date: string | null
   url: string
@@ -338,12 +340,18 @@ export function cleanDescriptionHtml(html: string | null | undefined): string | 
   return text || null
 }
 
+/** An absolute http(s) URL, or null: the logo fields are third-party data. */
+export function httpUrl(value: string | null | undefined): string | null {
+  return typeof value === "string" && /^https?:\/\//i.test(value) ? value : null
+}
+
 /** Search-result item shape from POST /api/avisos/searchV2. */
 export interface RawSearchItem {
   id: number
   titulo: string
   empresa: string | null
   confidencial?: boolean
+  logoURL?: string | null
   localizacion: string | null
   fechaPublicacion: string | null
   modalidadTrabajo?: string | null
@@ -366,6 +374,7 @@ export function mapSearchItem(item: RawSearchItem): JobCard {
     title: item.titulo,
     company,
     companyUrl: null,
+    companyLogo: item.confidencial ? null : httpUrl(item.logoURL),
     location: item.localizacion || null,
     date: normalizeDate(item.fechaPublicacion),
     url: buildResultUrl(id, item.titulo, item.confidencial ? null : company),
@@ -381,7 +390,13 @@ export interface RawAvisoDetail {
   id: number
   titulo: string
   descripcion: string | null
-  empresa?: { denominacion?: string | null; industria?: string | null; rangoEmpleados?: string | null } | null
+  empresa?: {
+    denominacion?: string | null
+    industria?: string | null
+    rangoEmpleados?: string | null
+    logoURL?: string | null
+    confidencial?: boolean
+  } | null
   localizacion?: { detalle?: string | null; direccion?: string | null } | null
   fechaPublicacion?: string | null
   fechaModificado?: string | null
@@ -411,6 +426,7 @@ export function mapAvisoDetail(aviso: RawAvisoDetail): JobDetail {
     title: aviso.titulo,
     company,
     companyUrl: null,
+    companyLogo: aviso.empresa?.confidencial ? null : httpUrl(aviso.empresa?.logoURL),
     location: aviso.localizacion?.detalle || null,
     date,
     url: aviso.seoFriendlyUrl ? `${BASE_URL}${aviso.seoFriendlyUrl}` : buildResultUrl(id, aviso.titulo, company),

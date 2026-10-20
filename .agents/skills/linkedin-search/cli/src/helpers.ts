@@ -52,9 +52,20 @@ export interface JobCard {
   title: string
   company: string | null
   companyUrl: string | null
+  /** Company logo from the card or top card (media.licdn.com company-logo image). */
+  companyLogo: string | null
   location: string | null
   date: string | null
   url: string
+}
+
+/**
+ * The company-logo image in a card or top card. LinkedIn lazy-loads it through
+ * data-delayed-url; the generic ghost image (static.licdn.com) is not a logo.
+ */
+export function parseCompanyLogo(html: string): string | null {
+  const m = html.match(/data-delayed-url="(https:\/\/media\.licdn\.com\/[^"]*company-logo[^"]*)"/i)
+  return m ? decodeHtmlEntities(m[1]) : null
 }
 
 export interface JobDetail extends JobCard {
@@ -230,6 +241,7 @@ export function parseJobCards(html: string): JobCard[] {
       title,
       company,
       companyUrl,
+      companyLogo: parseCompanyLogo(chunk),
       location,
       date,
       url: url || `https://www.linkedin.com/jobs/view/${id}`,
@@ -307,6 +319,7 @@ export function parseJobDetail(html: string, id: string, now: Date = new Date())
     title: title ? clean(title) : "(untitled)",
     company,
     companyUrl,
+    companyLogo: parseCompanyLogo(topcard),
     location,
     date: postedAgoToDate(postedAgo, now),
     url: `https://www.linkedin.com/jobs/view/${id}`,

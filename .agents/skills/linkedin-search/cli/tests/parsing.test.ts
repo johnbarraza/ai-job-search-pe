@@ -351,3 +351,26 @@ describe("normalizeId", () => {
   });
 });
 
+
+describe("companyLogo", () => {
+  const logo =
+    "https://media.licdn.com/dms/image/v2/C4D0BAQH/company-logo_100_100/company-logo_100_100/0/1/gallagher_logo?e=2147483647&amp;v=beta";
+  test("search cards carry the company-logo image, entity-decoded", () => {
+    const html = searchCard("11", "Analista").replace(
+      "</h4>",
+      `</h4><img class="artdeco-entity-image" data-delayed-url="${logo}">`,
+    );
+    expect(parseJobCards(html)[0].companyLogo).toBe(logo.replace("&amp;", "&"));
+  });
+  test("the generic ghost image is not a logo", () => {
+    const html = searchCard("12", "Analista").replace(
+      "</h4>",
+      `</h4><img data-delayed-url="https://static.licdn.com/aero-v1/sc/h/3p1v0uhy7uq0cm5zdvzp4eo18">`,
+    );
+    expect(parseJobCards(html)[0].companyLogo).toBeNull();
+  });
+  test("the detail top card logo is read before the description", () => {
+    const html = `<img data-delayed-url="${logo}"><div class="show-more-less-html__markup">x</div>`;
+    expect(parseJobDetail(html, "13").companyLogo).toBe(logo.replace("&amp;", "&"));
+  });
+});

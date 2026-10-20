@@ -88,6 +88,8 @@ bumeran.com.pe posting URL also works. Returns the HTML description as clean tex
 seniority, employment type, work mode, area/sub-area, and `applyUrl` when the employer
 redirects to its own ATS (`null` means apply on Bumeran itself).
 
+`companyLogo` (search and detail) is the employer's logo (empresa.logoURL), null for confidential postings.
+
 Freshness fields: `date` (fechaPublicacion, which an employer can reset by republishing),
 `updated` (fechaModificado, only when later than the publication day), `validThrough`
 (fechaFinalizacion: the end of the publication plan, not an employer deadline), `status`

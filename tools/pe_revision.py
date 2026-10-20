@@ -21,6 +21,7 @@ Usage:
 """
 
 import argparse
+import base64
 import html
 import importlib.util
 import json
@@ -81,6 +82,37 @@ def company_file(name: str) -> str:
     return (name or "").strip().lower().replace(" ", "-") + ".json"
 
 
+def load_logos(research_dir: Path) -> dict:
+    """tools/pe_logos.py's index: company key -> PNG file in research_dir/logos."""
+    try:
+        index = json.loads((research_dir / "logos" / "index.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return index if isinstance(index, dict) else {}
+
+
+def logo_uri(research_dir: Path, logos: dict, company: str) -> str | None:
+    """The employer's logo as a data: URI, so the page stays one offline file."""
+    entry = logos.get(re.sub(r"\s+", "-", (company or "").strip().lower()))
+    file = entry.get("file") if isinstance(entry, dict) else None
+    if not isinstance(file, str) or not re.fullmatch(r"[a-z0-9_-]+\.png", file):
+        return None  # the index may be hand-edited: only plain PNG names in the logos folder
+    try:
+        data = (research_dir / "logos" / file).read_bytes()
+    except OSError:
+        return None
+    if not data.startswith(b"\x89PNG"):
+        return None
+    return "data:image/png;base64," + base64.b64encode(data).decode("ascii")
+
+
+def logo_html(r: dict) -> str:
+    if r.get("logo"):
+        return f'<img class="logo" src="{esc(r["logo"])}" alt="" width="28" height="28">'
+    initials = "".join(w[0] for w in re.findall(r"[A-Za-zÁÉÍÓÚÑáéíóúñ0-9]+", r.get("company") or "")[:2]).upper()
+    return f'<span class="logo none" aria-hidden="true">{esc(initials or "?")}</span>'
+
+
 def load_ratings(research_dir: Path, company: str) -> list[dict] | None:
     path = research_dir / company_file(company)
     if not path.is_file():
@@ -135,16 +167,39 @@ def rating_html(ratings: list[dict] | None) -> str:
     return "<br>".join(parts)
 
 
+FRESH_CSS = {"muy alta": "f4", "alta": "f3", "media": "f2", "baja": "f1"}
+
+
+def freshness_of(fresh: dict | None) -> str:
+    """pe_frescura's freshness level; frescura.json files written before it existed lack it."""
+    if not fresh:
+        return "sin revisar"
+    level = fresh.get("freshness")
+    if level in pe_frescura.FRESHNESS_ORDER:
+        return level
+    age = fresh.get("age_days")
+    if not isinstance(age, int):
+        return "sin fecha"
+    if fresh.get("risk") == "alto" and age <= pe_frescura.ACTIVE_DAYS:
+        return "baja"  # closed or expired
+    for limit, name in ((pe_frescura.VERY_FRESH_DAYS, "muy alta"), (pe_frescura.FRESH_DAYS, "alta"), (pe_frescura.ACTIVE_DAYS, "media")):
+        if age <= limit:
+            return name
+    return "baja"
+
+
 def fresh_html(fresh: dict | None) -> str:
     if not fresh:
         return '<span class="dim">sin revisar</span>'
     floor = "≥" if fresh.get("age_is_minimum") else ""
     age = f"{floor}{fresh['age_days']} d" if fresh.get("age_days") is not None else "?"
     signals = "".join(f"<li>{esc(s)}</li>" for s in fresh.get("signals") or [])
+    level = freshness_of(fresh)
+    risk = fresh.get("risk")
     return (
-        f'<span class="risk {esc(fresh.get("risk"))}">{esc(fresh.get("risk"))}</span> '
-        f'{esc(fresh.get("window"))} · {esc(age)}'
+        f'<span class="fresh {FRESH_CSS.get(level, "")}">{esc(level)}</span> · {esc(age)}'
         f'<br><span class="dim">publicada {esc(fresh.get("original_date") or "?")}</span>'
+        + (f'<br><span class="risk {esc(risk)}">riesgo de ghost job {esc(risk)}</span>' if risk in ("medio", "alto") else "")
         + (f'<ul class="signals">{signals}</ul>' if signals else "")
     )
 
@@ -244,6 +299,7 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
     seen = state.get("seen") or {}
     fresh_by_id = {pe_frescura.posting_id(r): r for r in fresh_rows}
     ctx_by_id = {pe_frescura.posting_id(r): r for r in (context_rows or [])}
+    logos = load_logos(research_dir)
     ranked, unranked = [], []
     for key, e in seen.items():
         if not isinstance(e, dict):
@@ -256,6 +312,7 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
             row["context"] = ctx_by_id.get(pid)
             row["action"] = action_for(e, fresh)
             row["ratings"] = load_ratings(research_dir, e.get("company") or "")
+            row["logo"] = logo_uri(research_dir, logos, e.get("company") or "")
             ranked.append(row)
         elif e.get("status") in (None, "new") and e.get("fit") in ("high", "medium"):
             unranked.append(row)
@@ -269,7 +326,7 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
         "shortlist": shortlist,
         "portals": Counter((e or {}).get("portal") or "?" for e in seen.values()),
         "verdicts": Counter(r.get("rank_verdict") for r in ranked),
-        "risks": Counter((r["fresh"] or {}).get("risk", "sin revisar") for r in shortlist),
+        "freshness": Counter(freshness_of(r["fresh"]) for r in shortlist),
         "rated": sum(1 for r in shortlist if r["ratings"]),
         "actions": Counter(r["action"] for r in ranked),
     }
@@ -310,7 +367,13 @@ td ul{margin:0;padding-left:16px}td li{margin:0 0 2px}
 .badge.go{background:var(--go-bg);color:var(--go)}.badge.warn{background:var(--warn-bg);color:var(--warn)}
 .badge.stop{background:var(--stop-bg);color:var(--stop)}.badge.muted{background:var(--muted-bg);color:var(--dim)}
 .badge.out{background:var(--muted-bg);color:var(--out)}
-.risk{font-weight:700;text-transform:uppercase;font-size:11px}.risk.bajo{color:var(--go)}.risk.medio{color:var(--warn)}.risk.alto{color:var(--stop)}
+.risk{font-size:11.5px}.risk.medio{color:var(--warn)}.risk.alto{color:var(--stop)}
+.fresh{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.fresh.f4{background:var(--go);color:var(--card)}.fresh.f3{background:var(--go-bg);color:var(--go)}
+.fresh.f2{background:var(--warn-bg);color:var(--warn)}.fresh.f1{background:var(--stop-bg);color:var(--stop)}
+.who{display:flex;gap:9px;align-items:flex-start}
+.logo{flex:none;width:28px;height:28px;border-radius:6px;object-fit:contain;background:#fff;border:1px solid var(--line)}
+.logo.none{display:inline-flex;align-items:center;justify-content:center;background:var(--muted-bg);color:var(--dim);font-size:11px;font-weight:700}
 .score{font-size:18px;font-weight:700}.tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--dim)}
 .signals{color:var(--dim);font-size:12px}tr.done{opacity:.55}
 .ctx{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;display:grid;gap:5px}
@@ -365,7 +428,7 @@ JS = """
     var t=(q.value||'').toLowerCase();
     document.querySelectorAll('#main tbody tr').forEach(function(tr){
       var ok=(!t||tr.dataset.text.indexOf(t)>=0)&&(!fa.value||tr.dataset.action===fa.value)
-        &&(!fm.value||tr.dataset.modality===fm.value)&&(!fr.value||tr.dataset.risk===fr.value)
+        &&(!fm.value||tr.dataset.modality===fm.value)&&(!fr.value||tr.dataset.fresh===fr.value)
         &&(!fz.value||tr.dataset.zones.split('|').indexOf(fz.value)>=0);
       tr.hidden=!ok;
     });
@@ -414,11 +477,12 @@ def _body(data: dict, today: date, title: str | None) -> str:
     confirm = data["actions"]["confirmar"] + data["actions"]["antes"]
     portals = " · ".join(f"{esc(p.replace('-search', ''))} {n}" for p, n in data["portals"].most_common())
     verdicts = " · ".join(f"{esc(v)} {n}" for v, n in data["verdicts"].most_common())
-    risks = " · ".join(f"{esc(k)} {n}" for k, n in data["risks"].most_common()) or "—"
+    order = list(pe_frescura.FRESHNESS_ORDER) + ["sin revisar"]
+    freshness = " · ".join(f"{esc(k)} {data['freshness'][k]}" for k in order if data["freshness"][k]) or "—"
     steps = [
         ("1 · Búsqueda", len(data["seen"]), f"vistas · {portals}", "/scrape"),
         ("2 · Encaje", len(data["ranked"]), f"evaluadas · {verdicts}", "/rank"),
-        ("3 · Frescura", len(sl), f"en lista corta · riesgo {risks}", "pe_frescura.py"),
+        ("3 · Frescura", len(sl), f"en lista corta · frescura {freshness}", "pe_frescura.py"),
         ("4 · Reputación", data["rated"], f"de {len(sl)} con calificación", "company"),
         ("5 · Acción", ready, f"para postular · {confirm} por confirmar", "/apply"),
     ]
@@ -449,12 +513,12 @@ def _body(data: dict, today: date, title: str | None) -> str:
         sort_attrs = " ".join(f'data-s-{k}="{esc(v)}"' for k, v in sort_keys.items())
         return (
             f'<tr data-action="{esc(r["action"])}" data-modality="{esc(r.get("modality"))}" '
-            f'data-risk="{esc(fresh.get("risk", ""))}" data-zones="{esc(zones)}" data-text="{esc(text)}" {sort_attrs}>'
+            f'data-fresh="{esc(freshness_of(r.get("fresh")))}" data-zones="{esc(zones)}" data-text="{esc(text)}" {sort_attrs}>'
             f'<td><input type="checkbox" class="done" data-key="{esc(r["key"])}" aria-label="Revisada"></td>'
             f'<td><span class="badge {css}">{esc(label)}</span></td>'
             f'<td><div class="score">{esc(r.get("rank_score"))}</div><span class="dim">{esc(r.get("rank_verdict"))}</span></td>'
-            f'<td><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}<div class="meta">{meta}</div>'
-            f'{context_html(r.get("context"))}</td>'
+            f'<td><div class="who">{logo_html(r)}<div><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}</div></div>'
+            f'<div class="meta">{meta}</div>{context_html(r.get("context"))}</td>'
             f'<td>{fresh_html(r.get("fresh"))}</td>'
             f'<td>{rating_html(r.get("ratings"))}</td>'
             f'<td>{bullets(r.get("strengths"))}</td>'
@@ -500,7 +564,7 @@ El encaje es un triaje de <code>/rank</code>; <code>/apply</code> vuelve a evalu
 <div class="filters"><input id="q" type="search" placeholder="Buscar puesto o empresa" aria-label="Buscar">
 <select id="fa" aria-label="Acción"><option value="">Toda acción</option>{action_opts}</select>
 <select id="fm" aria-label="Modalidad"><option value="">Toda modalidad</option>{modality_opts}</select>
-<select id="fr" aria-label="Riesgo"><option value="">Todo riesgo</option><option value="bajo">bajo</option><option value="medio">medio</option><option value="alto">alto</option></select>
+<select id="fr" aria-label="Frescura"><option value="">Toda frescura</option><option value="muy alta">muy alta</option><option value="alta">alta</option><option value="media">media</option><option value="baja">baja</option></select>
 <select id="fz" aria-label="Zona"><option value="">Toda zona</option>{zone_opts}</select></div>
 <div class="legend"><span><span class="pill mod-pres">Presencial</span> <span class="pill mod-hib">Híbrido</span> <span class="pill mod-rem">Remoto</span> <span class="chip place">Distrito</span> <span class="chip sector">Rubro</span> <span class="chip kind">Tipo de empresa</span></span>
 <span>Confianza del dato: <span class="dots conf-alta">●●●</span> alta · <span class="dots conf-media">●●○</span> media · <span class="dots conf-baja">●○○</span> baja</span>

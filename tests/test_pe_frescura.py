@@ -68,6 +68,28 @@ class Windows(unittest.TestCase):
         self.assertEqual((row["window"], row["age_days"], row["risk"]), ("sin fecha", None, "bajo"))
 
 
+class Freshness(unittest.TestCase):
+    """Freshness reads up (muy alta = newest), the opposite way from risk."""
+
+    def test_levels_follow_the_age_from_the_original_publication(self):
+        cases = {"2026-10-17": "muy alta", "2026-10-13": "alta", "2026-10-01": "media", "2026-09-16": "baja"}
+        for posted, level in cases.items():
+            with self.subTest(posted=posted):
+                self.assertEqual(one(ct(date=posted))["freshness"], level)
+
+    def test_a_renewal_does_not_make_an_old_posting_fresh(self):
+        self.assertEqual(one(ct(date="2026-09-16", updated="2026-10-17"))["freshness"], "baja")
+
+    def test_closed_postings_are_never_fresh_and_missing_dates_are_not_guessed(self):
+        closed = {"id": "4470996313", "url": "https://www.linkedin.com/jobs/view/4470996313", "date": "2026-10-17", "isActive": False}
+        self.assertEqual(one(closed)["freshness"], "baja")
+        self.assertEqual(one(ct(date=None))["freshness"], "sin fecha")
+
+    def test_many_applicants_raise_the_risk_but_not_the_age(self):
+        row = one({"id": "1", "url": "https://www.linkedin.com/jobs/view/1", "date": "2026-10-16", "applicants": 200})
+        self.assertEqual((row["freshness"], row["risk"]), ("muy alta", "medio"))
+
+
 class ClosedAndExpired(unittest.TestCase):
     def test_linkedin_closed_banner_is_high_risk(self):
         row = one({"id": "4470996313", "url": "https://www.linkedin.com/jobs/view/4470996313", "date": "2026-10-15", "isActive": False})
@@ -166,7 +188,7 @@ class Inputs(unittest.TestCase):
             rows = json.loads(proc.stdout)["postings"]
             self.assertEqual([r["risk"] for r in rows], ["bajo", "alto"])
 
-    def test_cli_text_output_names_window_and_advice(self):
+    def test_cli_text_output_names_freshness_risk_and_advice(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "in.json"
             path.write_text(json.dumps(ct(date="2026-10-17")), encoding="utf-8")
@@ -175,7 +197,7 @@ class Inputs(unittest.TestCase):
                 capture_output=True, text=True, encoding="utf-8",
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
-            self.assertIn("[BAJO ] fresca", proc.stdout)
+            self.assertIn("[frescura muy alta ] riesgo bajo", proc.stdout)
             self.assertIn("postula ya", proc.stdout)
 
 

@@ -1,0 +1,93 @@
+"""tools/pe_logos.py and the logo cell of tools/pe_revision.py."""
+
+import importlib.util
+import io
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+
+
+def load(name):
+    spec = importlib.util.spec_from_file_location(name, REPO / "tools" / f"{name}.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+pl = load("pe_logos")
+pr = load("pe_revision")
+
+try:
+    from PIL import Image
+except ImportError:  # pragma: no cover
+    Image = None
+
+
+class Hosts(unittest.TestCase):
+    def test_only_https_on_the_known_image_hosts(self):
+        self.assertTrue(pl.allowed("https://media.licdn.com/dms/image/v2/x/company-logo_100_100/0/1/acme"))
+        self.assertTrue(pl.allowed("https://firebasestorage.googleapis.com/v0/b/x/o/company_logos%2Fa.jpg?alt=media"))
+        self.assertFalse(pl.allowed("http://media.licdn.com/x"))
+        self.assertFalse(pl.allowed("https://media.licdn.com.evil.example/x"))
+        self.assertFalse(pl.allowed("https://example.com/logo.png"))
+        self.assertFalse(pl.allowed(None))
+
+
+class PostingLogos(unittest.TestCase):
+    def test_reads_details_search_outputs_and_skips_foreign_urls(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            detail = Path(tmp) / "d.json"
+            detail.write_text(json.dumps({"company": "Banco Falabella Perú",
+                                          "companyLogo": "https://media.licdn.com/a/company-logo_100_100/x"}), encoding="utf-8")
+            search = Path(tmp) / "s.json"
+            search.write_text(json.dumps({"results": [
+                {"company": "MAPFRE PERU", "companyLogo": "https://imgbum.jobscdn.com/logo.jpg"},
+                {"company": "Acme", "companyLogo": "https://tracker.example/pixel.gif"},
+            ]}), encoding="utf-8")
+            found = pl.posting_logos([detail, search])
+        self.assertEqual(set(found), {"banco-falabella-perú", "mapfre-peru"})
+
+    def test_keys_match_the_review_page_lookup(self):
+        self.assertEqual(pl.company_file("  Banco  Falabella Perú "), "banco-falabella-perú")
+
+
+@unittest.skipIf(Image is None, "Pillow not installed")
+class Images(unittest.TestCase):
+    def jpeg(self, size=(400, 200)):
+        out = io.BytesIO()
+        Image.new("RGB", size, (200, 30, 30)).save(out, format="JPEG")
+        return out.getvalue()
+
+    def test_reencodes_as_a_small_png(self):
+        png = pl.to_png(self.jpeg())
+        self.assertTrue(png.startswith(b"\x89PNG"))
+        with Image.open(io.BytesIO(png)) as img:
+            self.assertLessEqual(max(img.size), pl.SIZE)
+
+    def test_bytes_that_are_not_an_image_are_rejected(self):
+        with self.assertRaises(Exception):
+            pl.to_png(b"<script>alert(1)</script>")
+
+    def test_review_page_embeds_the_cached_logo_and_falls_back_to_initials(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            research = Path(tmp)
+            (research / "logos").mkdir()
+            (research / "logos" / "acme.png").write_bytes(pl.to_png(self.jpeg((50, 50))))
+            (research / "logos" / "index.json").write_text(json.dumps({
+                "acme": {"file": "acme.png"},
+                "evil": {"file": "../../secret.png"},
+            }), encoding="utf-8")
+            logos = pr.load_logos(research)
+            uri = pr.logo_uri(research, logos, "Acme")
+            self.assertTrue(uri.startswith("data:image/png;base64,"))
+            self.assertIsNone(pr.logo_uri(research, logos, "Evil"))
+            self.assertIsNone(pr.logo_uri(research, logos, "Nobody"))
+        self.assertIn('<img class="logo"', pr.logo_html({"logo": uri}))
+        self.assertIn(">BF<", pr.logo_html({"company": "Banco Falabella"}))
+
+
+if __name__ == "__main__":
+    unittest.main()

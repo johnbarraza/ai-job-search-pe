@@ -95,6 +95,8 @@ bun run .agents/skills/computrabajo-search/cli/src/cli.ts detail <id|url> [--for
 Returns the full description, requirements, skills, salary / contract / schedule /
 workplace chips, dates, and the apply link.
 
+`companyLogo` is the employer's logo (ii.ct-stc.com); only `detail` fills it, search cards leave it null.
+
 Dates: a search card shows only the posting's **last renewal** (employers "actualizan" a
 posting to push it back to the top), so `--jobage` filters by renewal, not publication. The
 detail page's JSON-LD has the publication dates: `date` is `datePosted`, the start of the
