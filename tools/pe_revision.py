@@ -25,6 +25,7 @@ import base64
 import html
 import importlib.util
 import json
+import os
 import re
 import sys
 import unicodedata
@@ -272,6 +273,39 @@ def people_html(r: dict) -> str:
     if not rows:
         return ""
     return '<div class="how"><b>Personas del área</b> (web oficial):<ul class="people">' + "".join(rows) + "</ul></div>"
+
+
+def cv_html(r: dict, artifact: bool) -> str:
+    """The tailored CV for this posting (seen_jobs entry -> cv). In the Artifact a button saves it
+    through the viewer's downloads capability (plain download links are blocked there); in the
+    local page a link opens the PDF."""
+    href = r.get("cv_href")
+    if not href:
+        return ""
+    name = href.rsplit("/", 1)[-1]
+    if artifact:
+        return (f'<div class="cvrow"><button type="button" class="btn-cv" data-file="{esc(href)}" '
+                f'title="{esc(name)}">Descargar CV</button></div>')
+    return (f'<div class="cvrow"><a class="btn-cv" href="{esc(href)}" target="_blank" rel="noopener noreferrer" '
+            f'title="{esc(name)}">Abrir CV</a></div>')
+
+
+def cv_hrefs(rows: list[dict], out_dir: Path, artifact: bool) -> dict[str, str]:
+    """Set each row's cv_href and return {published name: source path} for the Artifact's files."""
+    manifest = {}
+    for r in rows:
+        src = r.get("cv")
+        if not isinstance(src, str) or not src.lower().endswith(".pdf") or not Path(src).is_file():
+            continue
+        if artifact:
+            name = Path(src).name
+            if manifest.get(name, src) != src:
+                continue  # two different CVs with one file name: keep the first
+            manifest[name] = src
+            r["cv_href"] = name
+        else:
+            r["cv_href"] = os.path.relpath(src, out_dir).replace(os.sep, "/")
+    return manifest
 
 
 def logo_html(r: dict) -> str:
@@ -579,7 +613,12 @@ table td:nth-child(7){width:13%}
 .how{margin-top:5px;font-size:12px;color:var(--dim)}.how b{color:var(--ink)}
 .urgent{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0}
 .urgent ol{margin:6px 0 0;padding-left:20px}.urgent li{margin:5px 0}
-.count{font-weight:600}.people{margin:3px 0 0;padding-left:16px}.people li{margin:1px 0}
+.count{font-weight:600}
+.cvrow{margin-top:7px}
+.btn-cv{display:inline-block;font:600 13px/1 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:7px 12px;border-radius:7px;
+border:1px solid var(--accent);background:var(--accent);color:var(--card);text-decoration:none;cursor:pointer}
+.btn-cv:hover{filter:brightness(1.1)}.btn-cv[disabled]{opacity:.55;cursor:not-allowed}
+.btn-cv:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.people{margin:3px 0 0;padding-left:16px}.people li{margin:1px 0}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:5px}
 .pill{display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;line-height:1.5}
 .pill.mod-pres{background:var(--mod-pres-bg);color:var(--mod-pres)}.pill.mod-hib{background:var(--mod-hib-bg);color:var(--mod-hib)}
@@ -608,6 +647,29 @@ details{margin:12px 0}summary{cursor:pointer;font-weight:600;color:var(--accent)
 .wrap{overflow-x:auto;min-width:0}.wrap table{min-width:1180px}
 @media (max-width:900px){.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:520px){.flow{grid-template-columns:minmax(0,1fr)}}
+"""
+
+# Artifact only: save a CV through the downloads capability (the frame blocks download links).
+CV_JS = """
+(function(){
+  var btns=document.querySelectorAll('button.btn-cv');
+  if(!btns.length)return;
+  var dl=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);
+  dl.then(function(d){if(!d)btns.forEach(function(b){b.disabled=true;b.title='Las descargas no están disponibles en esta vista';});});
+  btns.forEach(function(b){
+    b.addEventListener('click',function(){
+      dl.then(function(d){
+        if(!d)return;
+        var label=b.textContent;b.disabled=true;b.textContent='Preparando…';
+        fetch(b.dataset.file).then(function(r){if(!r.ok)throw {code:'fetch'};return r.blob();})
+          .then(function(blob){return d.save({filename:b.dataset.file,data:blob});})
+          .then(function(){b.textContent='Descargado ✓';},function(e){
+            var c=e&&e.code;b.textContent=c==='declined'?'Cancelado':c==='rate_limited'?'Espera un momento':'No disponible';})
+          .then(function(){setTimeout(function(){b.textContent=label;b.disabled=false;},2500);});
+      });
+    });
+  });
+})();
 """
 
 JS = """
@@ -669,10 +731,10 @@ def render(data: dict, today: date, title: str | None, artifact: bool = False) -
         f"<title>{esc(page_title)}</title><style>{CSS}</style></head><body>\n"
     )
     tail = "" if artifact else "</body></html>\n"
-    return head + _body(data, today, title) + tail
+    return head + _body(data, today, title, artifact) + tail
 
 
-def _body(data: dict, today: date, title: str | None) -> str:
+def _body(data: dict, today: date, title: str | None, artifact: bool = False) -> str:
     labels = {k: (label, css) for k, label, css in ACTIONS}
     sl = data["shortlist"]
     ready = data["actions"]["ya"] + data["actions"]["pronto"]
@@ -708,7 +770,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
         age = fresh.get("age_days")
         closes = r.get("closes") or {"label": "—", "bucket": "sin", "css": "", "sort": 99999}
         how = f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else ""
-        how += contacts_html(r) + people_html(r)
+        how = cv_html(r, artifact) + how + contacts_html(r) + people_html(r)
         # Sort keys, one per sortable column (see the header buttons and the JS below).
         sort_keys = {
             "accion": ACTION_ORDER[r["action"]], "encaje": r.get("rank_score") or 0,
@@ -770,7 +832,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
             f'<li><span class="close {esc(r["closes"]["css"])}">{esc(r["closes"]["label"])}</span> '
             f'<b>{esc(r.get("rank_score"))}</b> · {link(r.get("url"), r.get("title"))} · {esc(r.get("company"))}'
             + (f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else "")
-            + contacts_html(r) + people_html(r)
+            + cv_html(r, artifact) + contacts_html(r) + people_html(r)
             + "</li>"
             for r in soon
         )
@@ -804,7 +866,7 @@ el vencimiento del portal no es una fecha de cierre (<code>10-peru-market.md</co
 Reputación: cada calificación con su n, área y fecha; con menos de {SMALL_N} opiniones es referencial y una certificación pagada no es independiente (sección 11).</p>
 </main>
 <footer class="dim">Generado por Claude Code · ai-job-search-pe · {esc(today.isoformat())}</footer>
-<script>{JS}</script>
+<script>{JS}{CV_JS if artifact else ''}</script>
 """
 
 
@@ -825,6 +887,8 @@ def main(argv=None) -> int:
     ap.add_argument("--artifact", action="store_true",
                     help="omit the document wrapper, for publishing as a claude.ai Artifact")
     ap.add_argument("--today", type=date.fromisoformat, default=date.today(), help="YYYY-MM-DD (for testing)")
+    ap.add_argument("--cv-manifest", type=Path,
+                    help="with --artifact: write {published name: CV path} here, the files to publish with the page")
     args = ap.parse_args(argv)
 
     try:
@@ -848,6 +912,10 @@ def main(argv=None) -> int:
             return 1
     data = collect(state, fresh_rows, args.research, context_rows, args.today)
     args.out.parent.mkdir(parents=True, exist_ok=True)
+    manifest = cv_hrefs(data["ranked"], args.out.parent.resolve(), args.artifact)
+    if args.cv_manifest:
+        args.cv_manifest.write_text(json.dumps({k: str(Path(v).resolve()) for k, v in manifest.items()},
+                                               ensure_ascii=False, indent=1), encoding="utf-8")
     args.out.write_text(render(data, args.today, args.titulo, args.artifact), encoding="utf-8")
     a = data["actions"]
     print(f"{args.out}: {len(data['ranked'])} evaluadas · postular {a['ya'] + a['pronto']} · "

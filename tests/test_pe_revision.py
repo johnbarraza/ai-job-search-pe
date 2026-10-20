@@ -278,3 +278,35 @@ class People(unittest.TestCase):
         self.assertIn("Marcos Cerón", html)
         self.assertNotIn("javascript:", html)
         self.assertIn("search/results/people/?keywords=Marcos+Cer%C3%B3n+BCRP", html)
+
+
+class TailoredCv(unittest.TestCase):
+    def setUp(self):
+        self.root = Path(tempfile.mkdtemp())
+        (self.root / "cv").mkdir()
+        self.pdf = self.root / "cv" / "CV_Ana_BCRP.pdf"
+        self.pdf.write_bytes(b"%PDF-1.4 test")
+
+    def rows(self):
+        return [dict(ranked(), key="a", cv=str(self.pdf)), dict(ranked(), key="b", cv=str(self.root / "missing.pdf"))]
+
+    def test_local_page_links_the_pdf_relative_to_the_report(self):
+        rows = self.rows()
+        pr.cv_hrefs(rows, self.root / "reports", artifact=False)
+        self.assertEqual(rows[0]["cv_href"], "../cv/CV_Ana_BCRP.pdf")
+        self.assertNotIn("cv_href", rows[1])
+        self.assertIn('<a class="btn-cv" href="../cv/CV_Ana_BCRP.pdf"', pr.cv_html(rows[0], artifact=False))
+
+    def test_artifact_uses_a_download_button_and_lists_the_files_to_publish(self):
+        rows = self.rows()
+        manifest = pr.cv_hrefs(rows, self.root / "reports", artifact=True)
+        self.assertEqual(manifest, {"CV_Ana_BCRP.pdf": str(self.pdf)})
+        html = pr.cv_html(rows[0], artifact=True)
+        self.assertIn('<button type="button" class="btn-cv" data-file="CV_Ana_BCRP.pdf"', html)
+        self.assertEqual(pr.cv_html(rows[1], artifact=True), "")
+
+    def test_only_the_artifact_page_carries_the_download_script(self):
+        data = pr.collect({"seen": {"a": ranked(cv=str(self.pdf))}}, [], Path(tempfile.mkdtemp()), today=date(2026, 10, 20))
+        pr.cv_hrefs(data["ranked"], self.root, artifact=True)
+        self.assertIn("claude.use('downloads')", pr.render(data, date(2026, 10, 20), None, artifact=True))
+        self.assertNotIn("claude.use('downloads')", pr.render(data, date(2026, 10, 20), None, artifact=False))
