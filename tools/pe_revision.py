@@ -27,6 +27,7 @@ import importlib.util
 import json
 import re
 import sys
+import unicodedata
 from collections import Counter
 from datetime import date
 from pathlib import Path
@@ -201,6 +202,65 @@ def contacts_html(r: dict) -> str:
     google = f'site:linkedin.com/in "{name}" (jefe OR gerente OR head) {area}'.strip()
     links.append(link("https://www.google.com/search?q=" + quote_plus(google), "Google"))
     return '<div class="how"><b>Contactos:</b> ' + " · ".join(links) + "</div>"
+
+
+# Words that say how senior someone is, not what they work on: left out when matching an area.
+ROLE_WORDS = {"de", "del", "la", "el", "y", "en", "e", "departamento", "especialista", "senior", "jefe", "jefa",
+              "gerente", "subgerente", "central", "supervisor", "supervisora", "lider", "asesor", "asesora",
+              "especializado", "especializada", "area", "analista", "practicante", "programa"}
+LEADER = re.compile(r"\b(gerente|subgerente|jef[ea]|supervisor[a]?|asesor[a]?|head|director[a]?)\b", re.I)
+
+
+def _stems(text: str) -> set[str]:
+    folded = unicodedata.normalize("NFKD", (text or "").lower())
+    folded = "".join(c for c in folded if not unicodedata.combining(c))
+    out = set()
+    for w in re.findall(r"[a-z]+", folded):
+        if w in ROLE_WORDS or len(w) < 4:
+            continue
+        if len(w) > 5 and w.endswith("es"):
+            w = w[:-2]
+        elif len(w) > 4 and w.endswith("s"):
+            w = w[:-1]
+        out.add(w)
+    return out
+
+
+def load_people(research_dir: Path, company: str) -> list[dict]:
+    """People the employer itself lists (company_research/<empresa>.json -> people), each with the
+    official page they came from."""
+    try:
+        doc = json.loads((research_dir / company_file(company)).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    people = doc.get("people") if isinstance(doc, dict) else None
+    return [p for p in people or [] if isinstance(p, dict) and isinstance(p.get("name"), str) and p.get("role")]
+
+
+def people_for(people: list[dict], title: str, limit: int = 4) -> list[dict]:
+    """Who works on the posting's area: role words shared with the area, leads first."""
+    area = _stems(area_of(title))
+    if not area:
+        return []
+    scored = []
+    for p in people:
+        shared = len(area & _stems(p.get("role") or ""))
+        if shared:
+            scored.append((shared, 1 if LEADER.search(p["role"]) else 0, p))
+    scored.sort(key=lambda x: (-x[0], -x[1], x[2]["name"]))
+    return [p for _, _, p in scored[:limit]]
+
+
+def people_html(r: dict) -> str:
+    rows = []
+    for p in r.get("people") or []:
+        name = p["name"]
+        official = link(p.get("url"), name) if re.match(r"^https?://", str(p.get("url") or "")) else esc(name)
+        li = link(people_search(f"{name} {company_query(r.get('company') or '')}"), "LinkedIn")
+        rows.append(f"<li>{official} · {esc(p['role'])} · {li}</li>")
+    if not rows:
+        return ""
+    return '<div class="how"><b>Personas del área</b> (web oficial):<ul class="people">' + "".join(rows) + "</ul></div>"
 
 
 def logo_html(r: dict) -> str:
@@ -430,6 +490,7 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
             row["closes"] = deadline_info(e, today)
             row["ratings"] = load_ratings(research_dir, e.get("company") or "")
             row["logo"] = logo_uri(research_dir, logos, e.get("company") or "")
+            row["people"] = people_for(load_people(research_dir, e.get("company") or ""), e.get("title") or "")
             ranked.append(row)
         elif e.get("status") in (None, "new") and e.get("fit") in ("high", "medium"):
             unranked.append(row)
@@ -507,7 +568,7 @@ table td:nth-child(7){width:13%}
 .how{margin-top:5px;font-size:12px;color:var(--dim)}.how b{color:var(--ink)}
 .urgent{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0}
 .urgent ol{margin:6px 0 0;padding-left:20px}.urgent li{margin:5px 0}
-.count{font-weight:600}
+.count{font-weight:600}.people{margin:3px 0 0;padding-left:16px}.people li{margin:1px 0}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:5px}
 .pill{display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;line-height:1.5}
 .pill.mod-pres{background:var(--mod-pres-bg);color:var(--mod-pres)}.pill.mod-hib{background:var(--mod-hib-bg);color:var(--mod-hib)}
@@ -636,7 +697,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
         age = fresh.get("age_days")
         closes = r.get("closes") or {"label": "—", "bucket": "sin", "css": "", "sort": 99999}
         how = f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else ""
-        how += contacts_html(r)
+        how += contacts_html(r) + people_html(r)
         # Sort keys, one per sortable column (see the header buttons and the JS below).
         sort_keys = {
             "accion": ACTION_ORDER[r["action"]], "encaje": r.get("rank_score") or 0,
@@ -698,7 +759,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
             f'<li><span class="close {esc(r["closes"]["css"])}">{esc(r["closes"]["label"])}</span> '
             f'<b>{esc(r.get("rank_score"))}</b> · {link(r.get("url"), r.get("title"))} · {esc(r.get("company"))}'
             + (f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else "")
-            + contacts_html(r)
+            + contacts_html(r) + people_html(r)
             + "</li>"
             for r in soon
         )

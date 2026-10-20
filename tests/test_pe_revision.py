@@ -252,3 +252,28 @@ class Contacts(unittest.TestCase):
 
     def test_anonymous_employers_get_no_contact_links(self):
         self.assertEqual(pr.contacts_html(ranked(company="Importante empresa del sector")), "")
+
+
+class People(unittest.TestCase):
+    PEOPLE = [
+        {"name": "Marco Vega", "role": "Subgerente de Investigación Económica", "url": "https://investigacion.bcrp.gob.pe/es/autores/marco-vega"},
+        {"name": "César Carrera", "role": "Especialista en Investigación Económica", "url": "https://x.example/c"},
+        {"name": "Marcos Cerón", "role": "Jefe del Departamento de Investigación Financiera", "url": "javascript:alert(1)"},
+        {"name": "Eduardo Moreno", "role": "Jefe del Departamento de Política Fiscal"},
+    ]
+
+    def test_the_area_picks_its_people_leads_first(self):
+        got = [p["name"] for p in pr.people_for(self.PEOPLE, "Practicante - Subgerencia de Investigación Económica")]
+        self.assertEqual(got[:2], ["Marco Vega", "César Carrera"])
+        self.assertEqual([p["name"] for p in pr.people_for(self.PEOPLE, "Practicante - Cuentas Fiscales")], ["Eduardo Moreno"])
+        self.assertEqual(pr.people_for(self.PEOPLE, "Programa de Prácticas 2027"), [])
+
+    def test_people_come_from_company_research_and_unsafe_links_are_dropped(self):
+        research = Path(tempfile.mkdtemp())
+        (research / pr.company_file("BCRP")).write_text(json.dumps({"people": self.PEOPLE}), encoding="utf-8")
+        seen = {"k": ranked(company="BCRP", title="Practicante - Dpto. de Investigación Financiera")}
+        row = pr.collect({"seen": seen}, [], research, today=date(2026, 10, 20))["ranked"][0]
+        html = pr.people_html(row)
+        self.assertIn("Marcos Cerón", html)
+        self.assertNotIn("javascript:", html)
+        self.assertIn("search/results/people/?keywords=Marcos+Cer%C3%B3n+BCRP", html)

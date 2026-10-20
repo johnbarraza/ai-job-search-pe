@@ -240,6 +240,12 @@ El tiempo de traslado en Lima pesa más que la distancia. Para el criterio de ub
   `linkedin`), siempre con su URL de fuente. La página de `pe_revision.py` lo muestra como
   chips; el botón de mapa aparece solo cuando hay una dirección (del aviso, del portal o de la web),
   porque con el distrito solo el punto cae en el centro del distrito, no en el trabajo.
+- **Personas del área:** cuando la propia empresa publica su equipo (por ejemplo, los
+  investigadores del BCRP en investigacion.bcrp.gob.pe), guárdalo en
+  `company_research/<empresa>.json`, campo `people` (`name`, `role`, `url` de la página oficial,
+  `source`, `fetched`). La página de revisión muestra, en cada oferta, a quienes comparten el
+  área del puesto (jefes primero), con su página oficial y una búsqueda en LinkedIn. Nunca
+  descargues perfiles de LinkedIn: solo enlaces de búsqueda que el candidato abre con su cuenta.
 
 ## 9. Programas de extensión universitaria y cursos de extensión
 
