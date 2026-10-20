@@ -89,5 +89,18 @@ class Images(unittest.TestCase):
         self.assertIn(">BF<", pr.logo_html({"company": "Banco Falabella"}))
 
 
+class FreshnessWithoutDetail(unittest.TestCase):
+    def test_a_pasted_posting_gets_freshness_from_its_publication_date(self):
+        from datetime import date
+        seen = {"k": {"status": "ranked", "rank_verdict": "Strong Fit", "rank_score": 80, "company": "Credicorp",
+                      "title": "Practicante", "url": None, "posted_date": "2026-10-19"}}
+        row = pr.collect({"seen": seen}, [{"url": "", "freshness": "baja"}], Path(tempfile.mkdtemp()),
+                         today=date(2026, 10, 20))["ranked"][0]
+        self.assertEqual((row["fresh"]["freshness"], row["fresh"]["age_days"], row["action"]), ("muy alta", 1, "ya"))
+
+    def test_no_date_means_no_freshness(self):
+        self.assertIsNone(pr.fresh_from_state({"posted_date": None}, __import__("datetime").date(2026, 10, 20)))
+
+
 if __name__ == "__main__":
     unittest.main()

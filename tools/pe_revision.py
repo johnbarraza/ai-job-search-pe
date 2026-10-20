@@ -295,7 +295,26 @@ def context_html(ctx: dict | None) -> str:
     return f'<div class="ctx">{place}{sector}{actions}</div>'
 
 
-def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_rows: list[dict] | None = None) -> dict:
+def fresh_from_state(entry: dict, today: date) -> dict | None:
+    """Freshness from posted_date alone, for postings with no portal detail (pasted from a
+    Facebook group or a university board): age only, no ghost-job signals."""
+    try:
+        posted = date.fromisoformat(str(entry.get("posted_date")))
+    except ValueError:
+        return None
+    age = (today - posted).days
+    if age < 0:
+        return None
+    window = "fresca" if age <= pe_frescura.FRESH_DAYS else "en curso" if age <= pe_frescura.ACTIVE_DAYS else "vieja"
+    fresh = {"age_days": age, "original_date": posted.isoformat(), "age_is_minimum": False, "window": window,
+             "risk": None, "signals": ["solo la fecha de publicación (sin detalle del portal)"]}
+    fresh["freshness"] = freshness_of(fresh)
+    return fresh
+
+
+def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_rows: list[dict] | None = None,
+            today: date | None = None) -> dict:
+    today = today or date.today()
     seen = state.get("seen") or {}
     fresh_by_id = {pe_frescura.posting_id(r): r for r in fresh_rows}
     ctx_by_id = {pe_frescura.posting_id(r): r for r in (context_rows or [])}
@@ -307,7 +326,7 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
         row = dict(e, key=key)
         if e.get("status") == "ranked":
             pid = pe_frescura.posting_id({"url": e.get("url")})
-            fresh = fresh_by_id.get(pid)
+            fresh = (fresh_by_id.get(pid) if pid else None) or fresh_from_state(e, today)
             row["fresh"] = fresh
             row["context"] = ctx_by_id.get(pid)
             row["action"] = action_for(e, fresh)
@@ -620,7 +639,7 @@ def main(argv=None) -> int:
         except (OSError, ValueError, AttributeError) as exc:
             print(f"cannot read {args.contexto}: {exc}", file=sys.stderr)
             return 1
-    data = collect(state, fresh_rows, args.research, context_rows)
+    data = collect(state, fresh_rows, args.research, context_rows, args.today)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render(data, args.today, args.titulo, args.artifact), encoding="utf-8")
     a = data["actions"]
