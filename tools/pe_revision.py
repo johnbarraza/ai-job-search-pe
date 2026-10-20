@@ -438,6 +438,16 @@ def _evidence(source, confidence) -> str:
 MODALITY_CLASS = {"presencial": "pres", "híbrido": "hib", "remoto": "rem"}
 
 
+def also_html(r: dict) -> str:
+    """Where else the same posting is published, with the company name each portal shows."""
+    links = []
+    for e in r.get("also") or []:
+        portal = (e.get("portal") or "otro portal").replace("-search", "")
+        label = portal + (f" ({e['company']})" if e.get("company") and e.get("company") != r.get("company") else "")
+        links.append(link(e.get("url"), label))
+    return f'<div class="src">También en: {" · ".join(links)}</div>' if links else ""
+
+
 def meta_html(r: dict) -> str:
     """Work mode as a coloured pill (it decides commutes), then level and portal, quieter."""
     modality = r.get("modality") or "no declarado"
@@ -522,10 +532,15 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
     ctx_by_id = {pe_frescura.posting_id(r): r for r in (context_rows or [])}
     logos = load_logos(research_dir)
     ranked, unranked = [], []
+    # The same posting on another portal (tools/pe_duplicados.py): shown once, on the one kept.
+    also: dict[str, list[dict]] = {}
     for key, e in seen.items():
-        if not isinstance(e, dict):
+        if isinstance(e, dict) and e.get("duplicate_of") in seen:
+            also.setdefault(e["duplicate_of"], []).append(e)
+    for key, e in seen.items():
+        if not isinstance(e, dict) or e.get("duplicate_of") in seen:
             continue
-        row = dict(e, key=key)
+        row = dict(e, key=key, also=also.get(key, []))
         if e.get("status") == "ranked":
             pid = pe_frescura.posting_id({"url": e.get("url")})
             fresh = (fresh_by_id.get(pid) if pid else None) or fresh_from_state(e, today)
@@ -786,7 +801,7 @@ def _body(data: dict, today: date, title: str | None, artifact: bool = False) ->
             f'<td><span class="badge {css}">{esc(label)}</span></td>'
             f'<td><div class="score">{esc(r.get("rank_score"))}</div><span class="dim">{esc(r.get("rank_verdict"))}</span></td>'
             f'<td><div class="who">{logo_html(r)}<div><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}</div></div>'
-            f'<div class="meta">{meta}</div>{how}{context_html(r.get("context"))}</td>'
+            f'<div class="meta">{meta}</div>{also_html(r)}{how}{context_html(r.get("context"))}</td>'
             f'<td>{fresh_html(r.get("fresh"))}</td>'
             f'<td><span class="close {esc(closes["css"])}">{esc(closes["label"])}</span></td>'
             f'<td>{rating_html(r.get("ratings"))}</td>'

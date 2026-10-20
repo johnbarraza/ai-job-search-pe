@@ -310,3 +310,23 @@ class TailoredCv(unittest.TestCase):
         pr.cv_hrefs(data["ranked"], self.root, artifact=True)
         self.assertIn("claude.use('downloads')", pr.render(data, date(2026, 10, 20), None, artifact=True))
         self.assertNotIn("claude.use('downloads')", pr.render(data, date(2026, 10, 20), None, artifact=False))
+
+
+class Duplicates(unittest.TestCase):
+    def test_a_posting_on_two_portals_is_shown_once_with_where_else(self):
+        seen = {
+            "keep": ranked(company="Santander Perú", title="Practicante de Riesgo"),
+            "dup": ranked(company="Universia Perú", title="Practicante Riesgos - Santander", portal="linkedin-search",
+                          url="https://www.linkedin.com/jobs/view/4475140001", duplicate_of="keep"),
+        }
+        data = pr.collect({"seen": seen}, [], Path(tempfile.mkdtemp()), today=date(2026, 10, 20))
+        self.assertEqual([r["key"] for r in data["ranked"]], ["keep"])
+        html = pr.also_html(data["ranked"][0])
+        self.assertIn("También en:", html)
+        self.assertIn("linkedin (Universia Perú)", html)
+        self.assertIn("https://www.linkedin.com/jobs/view/4475140001", html)
+
+    def test_a_dangling_duplicate_of_keeps_the_posting(self):
+        seen = {"a": ranked(duplicate_of="gone")}
+        data = pr.collect({"seen": seen}, [], Path(tempfile.mkdtemp()), today=date(2026, 10, 20))
+        self.assertEqual(len(data["ranked"]), 1)

@@ -100,6 +100,7 @@ automatically from your Languages table above - don't duplicate them here. -->
 - `tools/pe_frescura.py` - posting freshness and ghost-job risk from the portal CLIs' `detail` output (age from the original publication, renewals, reposts, portal expiry, applicants)
 - `tools/pe_contexto.py` - workplace district and Lima zone, and the employer's sector, each with its source and confidence (posting, portal, client site, web)
 - `tools/pe_revision.py` - offline HTML review page of a search (`reports/revision-ofertas.html`): fit from `/rank`, freshness, employer ratings from `company_research/`, and the next action per job; a posting whose `seen_jobs.json` entry has `cv` (path to its tailored PDF) gets an "Abrir CV" link, or in `--artifact` mode a "Descargar CV" button (publish with `capabilities: {downloads: true}` and the files `--cv-manifest` lists)
+- `tools/pe_duplicados.py` - the same posting published on several portals (or by an intermediary such as Universia): description containment plus the role words of the title; `--write` records `duplicate_of` and the review page shows it once, with "También en"
 - `tools/pe_logos.py` - employer logos for the review page, from the postings (`companyLogo` in the portal CLIs) or MyWorkIn, cached as small PNGs in `company_research/logos/`
 - `tools/perfiles.py` / `perfiles/<nombre>/` - one workspace per person (`/setup --user <nombre>`): a git worktree on a local `perfil/<nombre>` branch that a pre-push hook never lets reach a remote; open Claude Code inside it to work on that person's search
 
