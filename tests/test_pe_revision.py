@@ -200,3 +200,30 @@ class ArtifactMode(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Deadlines(unittest.TestCase):
+    TODAY = date(2026, 10, 20)
+
+    def test_labels_and_buckets(self):
+        cases = {"2026-10-20": ("HOY", "hoy"), "2026-10-21": ("mañana · 21/10", "3d"), "2026-10-25": ("en 5 días · 25/10", "7d"),
+                 "2026-11-15": ("15/11", "mas"), "2026-10-18": ("venció el 18/10", "vencida"), None: ("—", "sin")}
+        for deadline, (label, bucket) in cases.items():
+            with self.subTest(deadline=deadline):
+                info = pr.deadline_info({"deadline": deadline}, self.TODAY)
+                self.assertEqual((info["label"], info["bucket"]), (label, bucket))
+
+    def test_a_close_deadline_makes_a_shortlisted_posting_urgent(self):
+        entry = ranked(deadline="2026-10-21")
+        self.assertEqual(pr.action_for(entry, {"risk": "medio", "window": "vieja"}, self.TODAY), "ya")
+        self.assertEqual(pr.action_for(ranked(rank_verdict="Moderate Fit", deadline="2026-10-20"), None, self.TODAY), "tiempo")
+
+    def test_the_page_lists_what_closes_this_week_with_how_to_apply(self):
+        seen = {"a": ranked(deadline="2026-10-20", how_to_apply="Formulario del BCRP"), "b": ranked(title="Otra", url=None)}
+        data = pr.collect({"seen": seen}, [], Path(tempfile.mkdtemp()), today=self.TODAY)
+        page = pr.render(data, self.TODAY, None)
+        self.assertIn("Cierran en los próximos 7 días (1)", page)
+        self.assertIn('<span class="close today">HOY</span>', page)
+        self.assertIn("Formulario del BCRP", page)
+        self.assertIn('id="fc"', page)
+        self.assertIn('id="cnt"', page)

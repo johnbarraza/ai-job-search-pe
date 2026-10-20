@@ -60,12 +60,41 @@ def link(url, text) -> str:
     return esc(text)
 
 
-def action_for(entry: dict, fresh: dict | None) -> str:
-    """The next step for a posting, from its /rank verdict and its freshness risk."""
+URGENT_DAYS = 2  # a stated deadline this close makes a shortlisted posting "postular ya"
+
+
+def deadline_info(entry: dict, today: date) -> dict:
+    """The stated closing date (never the portal's expiry) as a label, a filter bucket and a sort key."""
+    try:
+        closes = date.fromisoformat(str(entry.get("deadline")))
+    except ValueError:
+        return {"days": None, "label": "—", "bucket": "sin", "css": "", "sort": 99999}
+    days = (closes - today).days
+    when = closes.strftime("%d/%m")
+    if days < 0:
+        return {"days": days, "label": f"venció el {when}", "bucket": "vencida", "css": "past", "sort": 99998}
+    if days == 0:
+        label, bucket, css = "HOY", "hoy", "today"
+    elif days == 1:
+        label, bucket, css = f"mañana · {when}", "3d", "soon"
+    elif days <= 3:
+        label, bucket, css = f"en {days} días · {when}", "3d", "soon"
+    elif days <= 7:
+        label, bucket, css = f"en {days} días · {when}", "7d", "week"
+    else:
+        label, bucket, css = when, "mas", ""
+    return {"days": days, "label": label, "bucket": bucket, "css": css, "sort": days}
+
+
+def action_for(entry: dict, fresh: dict | None, today: date | None = None) -> str:
+    """The next step for a posting, from its /rank verdict, its freshness risk and a close deadline."""
     if entry.get("location_verdict") == "FAIL" or entry.get("language_gate") == "FAIL":
         return "descartar"
     verdict = entry.get("rank_verdict")
     if verdict in SHORTLIST:
+        days = deadline_info(entry, today).get("days") if today else None
+        if days is not None and 0 <= days <= URGENT_DAYS:
+            return "ya"  # a stated deadline is a live process: no time to confirm first
         risk = (fresh or {}).get("risk")
         if risk == "alto":
             return "antes"
@@ -329,7 +358,8 @@ def collect(state: dict, fresh_rows: list[dict], research_dir: Path, context_row
             fresh = (fresh_by_id.get(pid) if pid else None) or fresh_from_state(e, today)
             row["fresh"] = fresh
             row["context"] = ctx_by_id.get(pid)
-            row["action"] = action_for(e, fresh)
+            row["action"] = action_for(e, fresh, today)
+            row["closes"] = deadline_info(e, today)
             row["ratings"] = load_ratings(research_dir, e.get("company") or "")
             row["logo"] = logo_uri(research_dir, logos, e.get("company") or "")
             ranked.append(row)
@@ -401,7 +431,15 @@ td ul{margin:0;padding-left:16px}td li{margin:0 0 2px}
 .ctx-v{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
 .ctx-v .ev,.ctx-v .ctx-note{flex-basis:100%}
 table td:nth-child(1){width:28px}table td:nth-child(2){width:120px}table td:nth-child(3){width:84px}
-table td:nth-child(4){min-width:330px;width:28%}table td:nth-child(5){width:13%}table td:nth-child(6){width:15%}
+table td:nth-child(4){min-width:330px;width:27%}table td:nth-child(5){width:12%}table td:nth-child(6){width:8%}
+table td:nth-child(7){width:13%}
+.close{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+.close.today{background:var(--stop);color:var(--card)}.close.soon{background:var(--stop-bg);color:var(--stop)}
+.close.week{background:var(--warn-bg);color:var(--warn)}.close.past{color:var(--dim);text-decoration:line-through}
+.how{margin-top:5px;font-size:12px;color:var(--dim)}.how b{color:var(--ink)}
+.urgent{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:10px 0}
+.urgent ol{margin:6px 0 0;padding-left:20px}.urgent li{margin:5px 0}
+.count{font-weight:600}
 .meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:5px}
 .pill{display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px;font-weight:600;line-height:1.5}
 .pill.mod-pres{background:var(--mod-pres-bg);color:var(--mod-pres)}.pill.mod-hib{background:var(--mod-hib-bg);color:var(--mod-hib)}
@@ -440,19 +478,24 @@ JS = """
   var done=load();
   document.querySelectorAll('input.done').forEach(function(cb){
     var tr=cb.closest('tr');cb.checked=!!done[cb.dataset.key];tr.classList.toggle('done',cb.checked);
-    cb.addEventListener('change',function(){done[cb.dataset.key]=cb.checked;save(done);tr.classList.toggle('done',cb.checked);});
+    cb.addEventListener('change',function(){done[cb.dataset.key]=cb.checked;save(done);tr.classList.toggle('done',cb.checked);count();apply();});
   });
-  var q=document.getElementById('q'),fa=document.getElementById('fa'),fm=document.getElementById('fm'),fr=document.getElementById('fr'),fz=document.getElementById('fz');
+  function count(){var c=document.getElementById('cnt');if(c)c.textContent=document.querySelectorAll('#main input.done:checked').length;}
+  count();
+  var q=document.getElementById('q'),fa=document.getElementById('fa'),fm=document.getElementById('fm'),fr=document.getElementById('fr'),fz=document.getElementById('fz'),fc=document.getElementById('fc'),fd=document.getElementById('fd');
+  var WITHIN={hoy:['hoy'],'3d':['hoy','3d'],'7d':['hoy','3d','7d']};
+  function closeOk(b){var v=fc.value;if(!v)return true;if(v==='fecha')return b!=='sin';if(v==='sin')return b==='sin';return (WITHIN[v]||[]).indexOf(b)>=0;}
+  function doneOk(tr){var v=fd.value;if(!v)return true;var d=tr.classList.contains('done');return v==='done'?d:!d;}
   function apply(){
     var t=(q.value||'').toLowerCase();
     document.querySelectorAll('#main tbody tr').forEach(function(tr){
       var ok=(!t||tr.dataset.text.indexOf(t)>=0)&&(!fa.value||tr.dataset.action===fa.value)
         &&(!fm.value||tr.dataset.modality===fm.value)&&(!fr.value||tr.dataset.fresh===fr.value)
-        &&(!fz.value||tr.dataset.zones.split('|').indexOf(fz.value)>=0);
+        &&(!fz.value||tr.dataset.zones.split('|').indexOf(fz.value)>=0)&&closeOk(tr.dataset.close)&&doneOk(tr);
       tr.hidden=!ok;
     });
   }
-  [q,fa,fm,fr,fz].forEach(function(el){el.addEventListener('input',apply);el.addEventListener('change',apply);});
+  [q,fa,fm,fr,fz,fc,fd].forEach(function(el){el.addEventListener('input',apply);el.addEventListener('change',apply);});
   // Sortable headers: first click sorts best first, the next one reverses.
   document.querySelectorAll('button.sort').forEach(function(btn){
     btn.addEventListener('click',function(){
@@ -523,22 +566,26 @@ def _body(data: dict, today: date, title: str | None) -> str:
         ratings = r.get("ratings") or []
         rating = next((x.get("rating") for x in ratings if isinstance(x.get("rating"), (int, float))), None)
         age = fresh.get("age_days")
+        closes = r.get("closes") or {"label": "—", "bucket": "sin", "css": "", "sort": 99999}
+        how = f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else ""
         # Sort keys, one per sortable column (see the header buttons and the JS below).
         sort_keys = {
             "accion": ACTION_ORDER[r["action"]], "encaje": r.get("rank_score") or 0,
             "puesto": f'{r.get("title") or ""} {r.get("company") or ""}'.lower(),
             "frescura": age if isinstance(age, int) else 99999, "reputacion": rating if rating is not None else -1,
+            "cierre": closes["sort"],
         }
         sort_attrs = " ".join(f'data-s-{k}="{esc(v)}"' for k, v in sort_keys.items())
         return (
             f'<tr data-action="{esc(r["action"])}" data-modality="{esc(r.get("modality"))}" '
-            f'data-fresh="{esc(freshness_of(r.get("fresh")))}" data-zones="{esc(zones)}" data-text="{esc(text)}" {sort_attrs}>'
+            f'data-fresh="{esc(freshness_of(r.get("fresh")))}" data-close="{esc(closes["bucket"])}" data-zones="{esc(zones)}" data-text="{esc(text)}" {sort_attrs}>'
             f'<td><input type="checkbox" class="done" data-key="{esc(r["key"])}" aria-label="Revisada"></td>'
             f'<td><span class="badge {css}">{esc(label)}</span></td>'
             f'<td><div class="score">{esc(r.get("rank_score"))}</div><span class="dim">{esc(r.get("rank_verdict"))}</span></td>'
             f'<td><div class="who">{logo_html(r)}<div><b>{link(r.get("url"), r.get("title"))}</b><br>{esc(r.get("company"))}</div></div>'
-            f'<div class="meta">{meta}</div>{context_html(r.get("context"))}</td>'
+            f'<div class="meta">{meta}</div>{how}{context_html(r.get("context"))}</td>'
             f'<td>{fresh_html(r.get("fresh"))}</td>'
+            f'<td><span class="close {esc(closes["css"])}">{esc(closes["label"])}</span></td>'
             f'<td>{rating_html(r.get("ratings"))}</td>'
             f'<td>{bullets(r.get("strengths"))}</td>'
             f'<td>{bullets(r.get("gaps"))}</td></tr>'
@@ -555,6 +602,7 @@ def _body(data: dict, today: date, title: str | None) -> str:
         + th("Encaje", "encaje", "desc", "mayor puntaje primero")
         + th("Puesto", "puesto", "asc", "de la A a la Z")
         + th("Frescura", "frescura", "asc", "más reciente primero")
+        + th("Cierre", "cierre", "asc", "la que cierra antes primero")
         + th("Reputación", "reputacion", "desc", "mejor calificación primero")
         + "<th>Fortalezas</th><th>Brechas</th></tr></thead>"
     )
@@ -573,6 +621,19 @@ def _body(data: dict, today: date, title: str | None) -> str:
         for r in data["unranked"]
     )
     heading = f"Revisión de ofertas · {esc(title)}" if title else "Revisión de ofertas"
+    soon = sorted((r for r in main_rows if r["closes"]["bucket"] in ("hoy", "3d", "7d")),
+                  key=lambda r: (r["closes"]["sort"], -(r.get("rank_score") or 0)))
+    urgent = ""
+    if soon:
+        items = "".join(
+            f'<li><span class="close {esc(r["closes"]["css"])}">{esc(r["closes"]["label"])}</span> '
+            f'<b>{esc(r.get("rank_score"))}</b> · {link(r.get("url"), r.get("title"))} · {esc(r.get("company"))}'
+            + (f'<div class="how"><b>Postular:</b> {esc(r["how_to_apply"])}</div>' if r.get("how_to_apply") else "")
+            + "</li>"
+            for r in soon
+        )
+        urgent = (f'<div class="urgent"><b>Cierran en los próximos 7 días ({len(soon)})</b> '
+                  f'<span class="dim">· fecha que la oferta escribe, no el vencimiento del portal</span><ol>{items}</ol></div>')
 
     return f"""<header><h1>{heading}</h1>
 <div class="dim">Generado el {esc(today.isoformat())} desde <code>seen_jobs.json</code>, la frescura y <code>company_research/</code>.
@@ -580,14 +641,18 @@ El encaje es un triaje de <code>/rank</code>; <code>/apply</code> vuelve a evalu
 <div class="flow">{flow}</div></header>
 <main>
 <h2>Para decidir ({len(main_rows)})</h2>
+{urgent}
+<div class="dim">Revisadas: <span class="count" id="cnt">0</span> de {len(main_rows)} · marca ✓ en cada oferta que ya viste.</div>
 <div class="filters"><input id="q" type="search" placeholder="Buscar puesto o empresa" aria-label="Buscar">
 <select id="fa" aria-label="Acción"><option value="">Toda acción</option>{action_opts}</select>
 <select id="fm" aria-label="Modalidad"><option value="">Toda modalidad</option>{modality_opts}</select>
 <select id="fr" aria-label="Frescura"><option value="">Toda frescura</option><option value="muy alta">muy alta</option><option value="alta">alta</option><option value="media">media</option><option value="baja">baja</option></select>
-<select id="fz" aria-label="Zona"><option value="">Toda zona</option>{zone_opts}</select></div>
+<select id="fz" aria-label="Zona"><option value="">Toda zona</option>{zone_opts}</select>
+<select id="fc" aria-label="Cierre"><option value="">Todo cierre</option><option value="hoy">Cierra hoy</option><option value="3d">Hasta 3 días</option><option value="7d">Esta semana</option><option value="fecha">Con fecha de cierre</option><option value="sin">Sin fecha</option></select>
+<select id="fd" aria-label="Revisadas"><option value="">Revisadas y pendientes</option><option value="pend">Solo pendientes</option><option value="done">Solo revisadas</option></select></div>
 <div class="legend"><span><span class="pill mod-pres">Presencial</span> <span class="pill mod-hib">Híbrido</span> <span class="pill mod-rem">Remoto</span> <span class="chip place">Distrito</span> <span class="chip sector">Rubro</span> <span class="chip kind">Tipo de empresa</span></span>
 <span>Confianza del dato: <span class="dots conf-alta">●●●</span> alta · <span class="dots conf-media">●●○</span> media · <span class="dots conf-baja">●○○</span> baja</span>
-<span>Haz clic en Acción, Encaje, Puesto, Frescura o Reputación para ordenar.</span></div>
+<span>Haz clic en Acción, Encaje, Puesto, Frescura, Cierre o Reputación para ordenar.</span></div>
 <div class="wrap"><table id="main">{head}<tbody>{"".join(row(r) for r in main_rows)}</tbody></table></div>
 <details><summary>Descartadas o no elegibles ({len(out_rows)})</summary>
 <div class="wrap"><table>{head}<tbody>{"".join(row(r) for r in out_rows)}</tbody></table></div></details>
