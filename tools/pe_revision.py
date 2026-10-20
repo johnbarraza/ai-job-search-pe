@@ -208,7 +208,18 @@ def contacts_html(r: dict) -> str:
 ROLE_WORDS = {"de", "del", "la", "el", "y", "en", "e", "departamento", "especialista", "senior", "jefe", "jefa",
               "gerente", "subgerente", "central", "supervisor", "supervisora", "lider", "asesor", "asesora",
               "especializado", "especializada", "area", "analista", "practicante", "programa"}
-LEADER = re.compile(r"\b(gerente|subgerente|jef[ea]|supervisor[a]?|asesor[a]?|head|director[a]?)\b", re.I)
+
+
+SENIORITY = ("gerente central", "gerente", "subgerente", "jef", "director", "head", "supervisor", "asesor", "senior")
+
+
+def seniority(role: str) -> int:
+    """Lower is more senior: who to write to first."""
+    low = (role or "").lower()
+    for i, word in enumerate(SENIORITY):
+        if re.search(r"\b" + word, low):
+            return i
+    return len(SENIORITY)
 
 
 def _stems(text: str) -> set[str]:
@@ -246,8 +257,8 @@ def people_for(people: list[dict], title: str, limit: int = 4) -> list[dict]:
     for p in people:
         shared = len(area & _stems(p.get("role") or ""))
         if shared:
-            scored.append((shared, 1 if LEADER.search(p["role"]) else 0, p))
-    scored.sort(key=lambda x: (-x[0], -x[1], x[2]["name"]))
+            scored.append((shared, seniority(p["role"]), p))
+    scored.sort(key=lambda x: (-x[0], x[1], x[2]["name"]))
     return [p for _, _, p in scored[:limit]]
 
 
