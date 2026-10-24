@@ -90,9 +90,11 @@ recluta en inglés. Además de `05-cv-templates.md`:
   LinkedIn, y **distrito** de residencia (no la dirección exacta). No incluyas DNI, estado
   civil, fecha de nacimiento ni foto salvo que la oferta los pida; la foto es habitual en
   Perú pero no obligatoria, y se omite para multinacionales y postulaciones en inglés.
-- **Formación:** universidad, carrera y **ciclo actual** ("8.º ciclo") o **fecha de
-  egreso** ("Egresado, 2026-I"). Muchas ofertas filtran por ciclo o por fecha de egreso
-  ("desde 6.º ciclo", "egreso 2027-II"): ponlo donde un reclutador lo vea en 5 segundos.
+- **Formación:** universidad, carrera y **ciclo actual** ("8.º ciclo") o, si ya egresó, la
+  **condición de egresado** ("Egresado, 2026-I"). Muchas ofertas filtran por ciclo ("desde
+  6.º ciclo"): ponlo donde un reclutador lo vea en 5 segundos. Un estudiante **no** escribe su
+  fecha prevista de egreso salvo que la oferta la pida: no suma y puede descartarlo en filtros
+  como "egreso desde 2027-II".
 - **Mérito académico:** "Décimo superior", "Quinto superior" o "Tercio superior" es un
   filtro explícito en banca, consultoría, BCRP, MEF y SBS. Inclúyelo **solo si consta**
   en el perfil del candidato, con el periodo ("Quinto superior, 2024-II").
@@ -105,13 +107,39 @@ recluta en inglés. Además de `05-cv-templates.md`:
   "intermedio", el CV no dice "avanzado".
 - **Idiomas:** nivel y, si existe, certificado o institución (ICPNA, Británico, TOEFL,
   Cambridge).
-- **Referencias:** es costumbre cerrar con "Referencias disponibles a solicitud" o con 1–2
-  referencias laborales (nombre, cargo, empresa, contacto) **solo** con su permiso. Esto
-  reemplaza la línea de referencias por defecto del template (ver `05-cv-templates.md`).
+- **Referencias:** por defecto **no** se incluye la línea "Referencias disponibles a
+  solicitud": ocupa una línea y no informa nada. Solo se ponen 1–2 referencias laborales
+  (nombre, cargo, empresa, contacto) si la oferta las pide y con su permiso. Esto reemplaza la
+  línea de referencias por defecto del template (ver `05-cv-templates.md`).
+- **Niveles iguales en CV y formulario:** cuando un formulario de postulación pide niveles
+  ("¿Cuál es tu nivel de Python?"), el candidato elige; esos niveles se guardan en el perfil y
+  todo CV y formulario usa los mismos. El BCRP descalifica el CV que no coincide con lo
+  declarado: para esas convocatorias el CV lleva una línea "Conocimientos técnicos" con los
+  mismos términos y niveles del formulario.
 - **Extensión: 1 página** (una sola cara). Es lo más común en Perú y es el default de este
   fork (`CV length: 1 page` en CLAUDE.md, que `/apply` verifica con `verify_pdf.py --pages 1`).
   Solo se hace de 2 páginas si el candidato lo pide y cambia esa línea a `2 pages`. El CV
   maestro (`cv/main_example.tex`) puede ser más largo: es el inventario del que se recorta.
+
+### CV por rol: qué entra y qué no
+
+Cada CV a medida es una selección del perfil para **ese** puesto, no el inventario completo:
+
+- **Experiencia:** primero la que más calza con el aviso, aunque no sea la más reciente; se
+  quitan las viñetas que no tocan lo que pide. Un puesto que terminó va en pasado y con su
+  fecha de fin ("Mar. 2026 - Sep. 2026"); en el perfil del CV no se repiten fechas.
+- **Cursos relevantes:** solo los que sirven al rol (un puesto de investigación no lista
+  Economía Financiera II; uno de riesgos sí). Si ninguno sirve, la línea se quita. El texto del
+  perfil solo menciona cursos que estén en esa lista.
+- **Formación complementaria y concentraciones:** una concentración en Finanzas o un curso de
+  banca de inversión entran en puestos financieros (riesgos, FP&A, valorización, banca) y se
+  quitan en investigación, estadística, auditoría o comercial, donde ocupan espacio sin sumar.
+- **Proyectos:** se incluyen cuando el puesto es de investigación o datos públicos.
+- **Una corrección vale para todos:** si el candidato corrige algo en un CV (una fecha, una
+  línea que sobra, un curso que no va), se revisa y aplica en todos los CV del mismo lote.
+- **ATS:** sin división de palabras al final de línea (`\hyphenpenalty=10000`): un ATS lee
+  "Proyec- tos" como dos palabras. Los términos con guion que no deben partirse van en
+  `\mbox{}` ("económico-financiero").
 
 ## 4. Formularios y pretensión salarial
 
